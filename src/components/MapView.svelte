@@ -1,7 +1,27 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { t } from '../i18n';
+  import { loadPaths, pathError, pathLoadState, pathsByGroup } from '../lib/paths';
 
   const pinClasses = ['map__pin--one', 'map__pin--two', 'map__pin--three'];
+
+  onMount(() => {
+    loadPaths().catch((error) => {
+      console.error('Failed to load path dataset', error);
+    });
+  });
+
+  const handleRetry = () => {
+    loadPaths(true).catch((error) => {
+      console.error('Failed to reload path dataset', error);
+    });
+  };
+
+  $: groupCount = Object.keys($pathsByGroup).length;
+  $: pointCount = Object.values($pathsByGroup).reduce((total, points) => total + points.length, 0);
+  $: summaryText = $t.map.dataset.summary
+    .replace('{groups}', String(groupCount))
+    .replace('{points}', String(pointCount));
 </script>
 
 <section id="map" class="map glass">
@@ -19,6 +39,19 @@
       {/each}
     </div>
     <p class="map__caption">{$t.map.caption}</p>
+    <div class="map__status">
+      {#if $pathLoadState === 'loading'}
+        <span>{$t.map.dataset.loading}</span>
+      {:else if $pathLoadState === 'error'}
+        <span>{$t.map.dataset.error}</span>
+        {#if $pathError}
+          <span class="map__status-detail">{$pathError}</span>
+        {/if}
+        <button type="button" on:click={handleRetry}>{$t.map.dataset.retry}</button>
+      {:else if groupCount > 0}
+        <span>{summaryText}</span>
+      {/if}
+    </div>
   </div>
 </section>
 
@@ -97,5 +130,31 @@
     text-align: center;
     color: #e2e8f0;
     font-size: 0.9rem;
+  }
+
+  .map__status {
+    margin: 1rem 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+    color: #e2e8f0;
+    font-size: 0.85rem;
+  }
+
+  .map__status-detail {
+    color: #cbd5f5;
+    font-size: 0.8rem;
+  }
+
+  .map__status button {
+    align-self: center;
+    border: none;
+    border-radius: 999px;
+    padding: 0.4rem 1rem;
+    background: rgba(15, 23, 42, 0.35);
+    color: #f8fafc;
+    cursor: pointer;
+    font-weight: 600;
   }
 </style>

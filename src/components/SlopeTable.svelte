@@ -4,6 +4,7 @@
   import { t } from '../i18n';
   import {
     formatDistance,
+    formatElevation,
     formatGradient,
     loadSlopes,
     slopeError,
@@ -41,6 +42,7 @@
         <th>{$t.slopes.columns.climb}</th>
         <th>{$t.slopes.columns.district}</th>
         <th>{$t.slopes.columns.distance}</th>
+        <th>{$t.slopes.columns.ascent}</th>
         <th>{$t.slopes.columns.gradient}</th>
         <th>{$t.slopes.columns.suitability}</th>
       </tr>
@@ -48,11 +50,11 @@
     <tbody>
       {#if $slopeLoadState === 'loading'}
         <tr>
-          <td colspan="5" class="table-message">{$t.slopes.loading}</td>
+          <td colspan="6" class="table-message">{$t.slopes.loading}</td>
         </tr>
       {:else if $slopeLoadState === 'error'}
         <tr>
-          <td colspan="5" class="table-message">
+          <td colspan="6" class="table-message">
             <span>{$t.slopes.error}</span>
             {#if $slopeError}
               <span class="table-message__detail">{$slopeError}</span>
@@ -62,7 +64,7 @@
         </tr>
       {:else if $slopes.length === 0}
         <tr>
-          <td colspan="5" class="table-message">{$t.slopes.empty}</td>
+          <td colspan="6" class="table-message">{$t.slopes.empty}</td>
         </tr>
       {:else}
         {#each $slopes as row}
@@ -73,6 +75,7 @@
             </td>
             <td>{row.location}</td>
             <td>{formatDistance(row.distanceKm)}</td>
+            <td>{formatElevation(row.totalAscent)}</td>
             <td>{formatGradient(row.avgGradient)}</td>
             <td><SuitabilityBadge level={row.suitability} /></td>
           </tr>

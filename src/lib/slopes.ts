@@ -5,8 +5,10 @@ export interface SlopeRecord {
   name: string;
   location: string;
   distanceKm: number;
+  totalAscent: number;
   avgGradient: number;
   maxGradient: number;
+  pathGroupId: string;
   suitability: SuitabilityLevel;
 }
 
@@ -70,10 +72,20 @@ export function formatGradient(gradient: number): string {
   return `${formatNumber(gradient)}%`;
 }
 
+export function formatElevation(ascentMeters: number): string {
+  return `${formatInteger(ascentMeters)} m`;
+}
+
 function formatNumber(value: number): string {
   return new Intl.NumberFormat(undefined, {
     minimumFractionDigits: value < 10 ? 1 : 0,
     maximumFractionDigits: 1,
+  }).format(value);
+}
+
+function formatInteger(value: number): string {
+  return new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 0,
   }).format(value);
 }
 
@@ -152,8 +164,14 @@ function transformRecord(record: Record<string, string>, lineNumber: number): Sl
   const name = record['name'];
   const location = record['location'];
   const distanceKm = parseNumberField(record['distance_km'] ?? record['distancekm'], 'distance_km', lineNumber);
+  const totalAscent = parseNumberField(
+    record['total_ascent_m'] ?? record['total_ascent'] ?? record['elev_gain_m'],
+    'total_ascent_m',
+    lineNumber,
+  );
   const avgGradient = parseNumberField(record['avg_gradient'] ?? record['avg_gradient_pct'], 'avg_gradient', lineNumber);
   const maxGradient = parseNumberField(record['max_gradient'] ?? record['max_gradient_pct'], 'max_gradient', lineNumber);
+  const pathGroupId = record['path_group_id'] ?? record['group_id'] ?? record['pathgroupid'];
 
   if (!name) {
     throw new Error(`Row ${lineNumber} is missing a name column.`);
@@ -163,12 +181,18 @@ function transformRecord(record: Record<string, string>, lineNumber: number): Sl
     throw new Error(`Row ${lineNumber} is missing a location column.`);
   }
 
+  if (!pathGroupId) {
+    throw new Error(`Row ${lineNumber} is missing a path_group_id column.`);
+  }
+
   return {
     name,
     location,
     distanceKm,
+    totalAscent,
     avgGradient,
     maxGradient,
+    pathGroupId,
     suitability: classifySlope(distanceKm, avgGradient, maxGradient),
   };
 }
