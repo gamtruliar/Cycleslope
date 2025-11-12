@@ -1,28 +1,29 @@
+<script lang="ts">
+  import { t } from '../i18n';
+</script>
+
 <section class="hero glass">
   <div class="hero__content">
     <div class="hero__text">
-      <p class="eyebrow">Hong Kong Cycling Slopes Info Hub</p>
-      <h1>Plan your next climb with confidence.</h1>
-      <p class="lead">
-        Explore gradients, compare gearing options, and visualise signature Hong Kong ascents. This static prototype
-        outlines the intended layout while data wiring is still in progress.
-      </p>
+      <p class="eyebrow">{$t.hero.eyebrow}</p>
+      <h1>{$t.hero.title}</h1>
+      <p class="lead">{$t.hero.lead}</p>
       <div class="hero__actions">
-        <button class="primary">Explore sample climbs</button>
-        <button class="secondary">Watch overview</button>
+        <button class="primary">{$t.hero.actions.primary}</button>
+        <button class="secondary">{$t.hero.actions.secondary}</button>
       </div>
       <div class="hero__stats">
         <div>
           <p class="stat-value">28</p>
-          <p class="stat-label">iconic climbs</p>
+          <p class="stat-label">{$t.hero.stats.climbs}</p>
         </div>
         <div>
           <p class="stat-value">+12%</p>
-          <p class="stat-label">steepest gradient</p>
+          <p class="stat-label">{$t.hero.stats.gradient}</p>
         </div>
         <div>
           <p class="stat-value">4.8★</p>
-          <p class="stat-label">rider feedback</p>
+          <p class="stat-label">{$t.hero.stats.feedback}</p>
         </div>
       </div>
     </div>
@@ -30,20 +31,20 @@
       <div class="hero__card">
         <p class="badge">
           <span>🔥</span>
-          Climb spotlight
+          {$t.hero.card.badge}
         </p>
-        <h2>Tai Mo Shan Access Road</h2>
+        <h2>{$t.hero.card.title}</h2>
         <div class="hero__metrics">
           <div>
-            <span class="metric-label">Distance</span>
+            <span class="metric-label">{$t.hero.card.distanceLabel}</span>
             <span class="metric-value">5.6 km</span>
           </div>
           <div>
-            <span class="metric-label">Avg gradient</span>
+            <span class="metric-label">{$t.hero.card.gradientLabel}</span>
             <span class="metric-value">9.5%</span>
           </div>
           <div>
-            <span class="metric-label">Est. time</span>
+            <span class="metric-label">{$t.hero.card.timeLabel}</span>
             <span class="metric-value">32 min</span>
           </div>
         </div>
@@ -52,7 +53,7 @@
           <div class="chart-peak"></div>
           <div class="chart-peak chart-peak--secondary"></div>
         </div>
-        <p class="hero__note">Live data and calculations will appear here in the full build.</p>
+        <p class="hero__note">{$t.hero.card.note}</p>
       </div>
     </div>
   </div>

@@ -1,58 +1,43 @@
+<script lang="ts">
+  import { t } from '../i18n';
+</script>
+
 <section id="profile" class="profile glass">
   <header>
-    <p class="eyebrow">Your setup</p>
-    <h2>Dial in your current bike and power.</h2>
+    <p class="eyebrow">{$t.profile.eyebrow}</p>
+    <h2>{$t.profile.title}</h2>
   </header>
   <div class="profile__grid">
     <div class="profile__card">
-      <h3>Bike & drivetrain</h3>
+      <h3>{$t.profile.bike.title}</h3>
       <ul>
-        <li>
-          <span class="label">Bike type</span>
-          <span class="value">Endurance road</span>
-        </li>
-        <li>
-          <span class="label">Chainring</span>
-          <span class="value">50 / 34</span>
-        </li>
-        <li>
-          <span class="label">Cassette</span>
-          <span class="value">11 - 34</span>
-        </li>
-        <li>
-          <span class="label">Tyres</span>
-          <span class="value">28c tubeless</span>
-        </li>
+        {#each $t.profile.bike.items as item}
+          <li>
+            <span class="label">{item.label}</span>
+            <span class="value">{item.value}</span>
+          </li>
+        {/each}
       </ul>
     </div>
     <div class="profile__card">
-      <h3>Power profile</h3>
+      <h3>{$t.profile.power.title}</h3>
       <ul>
-        <li>
-          <span class="label">FTP</span>
-          <span class="value">240 W</span>
-        </li>
-        <li>
-          <span class="label">Weight</span>
-          <span class="value">68 kg</span>
-        </li>
-        <li>
-          <span class="label">W/kg</span>
-          <span class="value">3.5</span>
-        </li>
-        <li>
-          <span class="label">Climb style</span>
-          <span class="value">Seated diesel</span>
-        </li>
+        {#each $t.profile.power.items as item}
+          <li>
+            <span class="label">{item.label}</span>
+            <span class="value">{item.value}</span>
+          </li>
+        {/each}
       </ul>
     </div>
     <div class="profile__callout">
-      <h3>What&apos;s next?</h3>
+      <h3>{$t.profile.callout.title}</h3>
       <p>
-        This card will evolve into an interactive form syncing to <code>localStorage</code>. For now, it demonstrates the
-        spatial design and tonal hierarchy planned for the final experience.
+        {$t.profile.callout.bodyPrefix}
+        <code>{$t.profile.callout.codeLabel}</code>
+        {$t.profile.callout.bodySuffix}
       </p>
-      <button>Plan a gearing check</button>
+      <button>{$t.profile.callout.button}</button>
     </div>
   </div>
 </section>

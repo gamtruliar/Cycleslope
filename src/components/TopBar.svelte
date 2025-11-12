@@ -1,19 +1,27 @@
+<script lang="ts">
+  import { t } from '../i18n';
+  import LanguageSwitcher from './LanguageSwitcher.svelte';
+</script>
+
 <header class="topbar">
   <div class="container topbar__content">
     <div class="topbar__brand">
       <span class="brand-icon">🚴‍♀️</span>
       <div>
-        <p class="brand-title">HK Cycling Slopes</p>
-        <p class="brand-subtitle">Prototype UI</p>
+        <p class="brand-title">{$t.topBar.brandTitle}</p>
+        <p class="brand-subtitle">{$t.topBar.brandSubtitle}</p>
       </div>
     </div>
     <nav class="topbar__nav">
-      <a href="#filters">Filters</a>
-      <a href="#profile">Your Setup</a>
-      <a href="#slopes">Climbs</a>
-      <a href="#map">Map</a>
+      <a href="#filters">{$t.topBar.nav.filters}</a>
+      <a href="#profile">{$t.topBar.nav.profile}</a>
+      <a href="#slopes">{$t.topBar.nav.slopes}</a>
+      <a href="#map">{$t.topBar.nav.map}</a>
     </nav>
-    <button class="cta">Join Beta</button>
+    <div class="topbar__actions">
+      <LanguageSwitcher />
+      <button class="cta">{$t.topBar.cta}</button>
+    </div>
   </div>
 </header>
 
@@ -67,6 +75,12 @@
     font-weight: 500;
   }
 
+  .topbar__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
   .cta {
     border: none;
     background: linear-gradient(135deg, #2563eb, #0ea5e9);
@@ -90,6 +104,30 @@
       justify-content: space-around;
       flex-wrap: wrap;
       gap: 0.75rem;
+    }
+
+    .topbar__actions {
+      width: 100%;
+      justify-content: space-between;
+      order: 2;
+    }
+
+    .topbar__actions > :global(.language-switcher) {
+      flex: 1;
+    }
+
+    .topbar__actions .cta {
+      flex: 1;
+      justify-content: center;
+      display: inline-flex;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .topbar__actions {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
     }
   }
 </style>

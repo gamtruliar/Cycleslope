@@ -1,56 +1,33 @@
 <script lang="ts">
   import SuitabilityBadge from './SuitabilityBadge.svelte';
-
-  const sampleRows = [
-    {
-      name: 'Tai Mo Shan Access Road',
-      location: 'Tsuen Wan',
-      distance: '5.6 km',
-      gradient: '9.5%',
-      suitability: 'Challenging' as const,
-    },
-    {
-      name: 'Fei Ngo Shan',
-      location: 'Kowloon',
-      distance: '3.8 km',
-      gradient: '10.2%',
-      suitability: 'Brutal' as const,
-    },
-    {
-      name: 'Mount Parker Road',
-      location: 'Quarry Bay',
-      distance: '4.0 km',
-      gradient: '8.1%',
-      suitability: 'Friendly' as const,
-    },
-  ];
+  import { t } from '../i18n';
 </script>
 
 <section id="slopes" class="slopes glass">
   <header>
     <div>
-      <p class="eyebrow">Climb directory</p>
-      <h2>Preview the upcoming catalogue.</h2>
+      <p class="eyebrow">{$t.slopes.eyebrow}</p>
+      <h2>{$t.slopes.title}</h2>
     </div>
-    <button>Download CSV</button>
+    <button>{$t.slopes.cta}</button>
   </header>
 
   <table>
     <thead>
       <tr>
-        <th>Climb</th>
-        <th>District</th>
-        <th>Distance</th>
-        <th>Avg. gradient</th>
-        <th>Suitability</th>
+        <th>{$t.slopes.columns.climb}</th>
+        <th>{$t.slopes.columns.district}</th>
+        <th>{$t.slopes.columns.distance}</th>
+        <th>{$t.slopes.columns.gradient}</th>
+        <th>{$t.slopes.columns.suitability}</th>
       </tr>
     </thead>
     <tbody>
-      {#each sampleRows as row}
+      {#each $t.slopes.rows as row}
         <tr>
           <td>
             <strong>{row.name}</strong>
-            <span class="caption">Featured climb</span>
+            <span class="caption">{$t.slopes.caption}</span>
           </td>
           <td>{row.location}</td>
           <td>{row.distance}</td>
@@ -61,7 +38,7 @@
     </tbody>
   </table>
   <footer>
-    <p>Sorting, filtering, and pagination will be enabled once data integration lands.</p>
+    <p>{$t.slopes.footer}</p>
   </footer>
 </section>
 

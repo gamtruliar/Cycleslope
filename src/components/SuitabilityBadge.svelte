@@ -1,14 +1,16 @@
 <script lang="ts">
-  export let level: 'Friendly' | 'Challenging' | 'Brutal' = 'Friendly';
+  import { t, type SuitabilityLevel } from '../i18n';
+
+  export let level: SuitabilityLevel = 'Friendly';
 </script>
 
 <span class={`badge badge--${level.toLowerCase()}`}>
   {#if level === 'Friendly'}
-    🌤️ {level}
+    🌤️ {$t.suitability[level]}
   {:else if level === 'Challenging'}
-    ⚡ {level}
+    ⚡ {$t.suitability[level]}
   {:else}
-    🧗‍♂️ {level}
+    🧗‍♂️ {$t.suitability[level]}
   {/if}
 </span>
 

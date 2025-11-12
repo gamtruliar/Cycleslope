@@ -1,24 +1,24 @@
+<script lang="ts">
+  import { t } from '../i18n';
+
+  const pinClasses = ['map__pin--one', 'map__pin--two', 'map__pin--three'];
+</script>
+
 <section id="map" class="map glass">
   <header>
-    <p class="eyebrow">Map preview</p>
-    <h2>Visualise climb locations.</h2>
+    <p class="eyebrow">{$t.map.eyebrow}</p>
+    <h2>{$t.map.title}</h2>
   </header>
   <div class="map__canvas">
     <div class="map__grid">
-      <div class="map__pin map__pin--one">
-        <span>📍</span>
-        <p>Tai Mo Shan</p>
-      </div>
-      <div class="map__pin map__pin--two">
-        <span>📍</span>
-        <p>Fei Ngo Shan</p>
-      </div>
-      <div class="map__pin map__pin--three">
-        <span>📍</span>
-        <p>Mount Parker</p>
-      </div>
+      {#each $t.map.pins as pin, index}
+        <div class={`map__pin ${pinClasses[index] ?? ''}`}>
+          <span>📍</span>
+          <p>{pin}</p>
+        </div>
+      {/each}
     </div>
-    <p class="map__caption">Leaflet and real map tiles will replace this placeholder in the production build.</p>
+    <p class="map__caption">{$t.map.caption}</p>
   </div>
 </section>
 

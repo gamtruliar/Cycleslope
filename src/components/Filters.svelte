@@ -1,51 +1,55 @@
+<script lang="ts">
+  import { t } from '../i18n';
+</script>
+
 <section id="filters" class="filters glass">
   <header>
-    <p class="eyebrow">Filters</p>
-    <h2>Find the climb that matches your mood.</h2>
+    <p class="eyebrow">{$t.filters.eyebrow}</p>
+    <h2>{$t.filters.title}</h2>
   </header>
   <div class="filters__grid">
     <div class="filter-group">
-      <label for="filter-search">Search climbs</label>
+      <label for="filter-search">{$t.filters.searchLabel}</label>
       <div class="input-group">
         <span>🔍</span>
         <input
           id="filter-search"
           type="text"
-          placeholder="Type a climb or district"
+          placeholder={$t.filters.searchPlaceholder}
           disabled
         />
       </div>
     </div>
     <div class="filter-group">
-      <p class="field-label" id="difficulty-label">Difficulty focus</p>
+      <p class="field-label" id="difficulty-label">{$t.filters.difficultyLabel}</p>
       <div class="pill-group" role="group" aria-labelledby="difficulty-label">
-        <button>Beginner</button>
-        <button class="active">Progression</button>
-        <button>Advanced</button>
+        {#each $t.filters.difficultyOptions as option, index}
+          <button class:active={index === 1}>{option}</button>
+        {/each}
       </div>
     </div>
     <div class="filter-group">
-      <p class="field-label">Gradient</p>
+      <p class="field-label">{$t.filters.gradientLabel}</p>
       <div class="range-preview">
         <div class="range-track">
           <div class="range-fill"></div>
         </div>
         <div class="range-values">
-          <span>0%</span>
-          <span>12%</span>
+          <span>{$t.filters.gradientMin}</span>
+          <span>{$t.filters.gradientMax}</span>
         </div>
       </div>
     </div>
     <div class="filter-group">
-      <p class="field-label">Distance</p>
+      <p class="field-label">{$t.filters.distanceLabel}</p>
       <div class="chip-row">
-        <span class="chip">Short <strong>&lt; 3 km</strong></span>
-        <span class="chip">Medium <strong>3-6 km</strong></span>
-        <span class="chip">Long <strong>&gt; 6 km</strong></span>
+        {#each $t.filters.distanceChips as chip}
+          <span class="chip">{chip.label} <strong>{chip.detail}</strong></span>
+        {/each}
       </div>
     </div>
   </div>
-  <p class="filters__note">Interactive controls will be wired up once the dataset plumbing is complete.</p>
+  <p class="filters__note">{$t.filters.note}</p>
 </section>
 
 <style>
