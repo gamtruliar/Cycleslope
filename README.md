@@ -55,7 +55,8 @@ tailwind.config.js
    npm run offline:extract -- @sveltejs_vite-plugin-svelte.json
    ```
    The helper extracts a base64-encoded `.tgz` archive into `offline-packages/`. Pass any additional JSON archives you have on
-   disk to the same command to prepare their folders before installing dependencies.
+   disk to the same command to prepare their folders before installing dependencies. You can download the pre-seeded
+   `@sveltejs/vite-plugin-svelte` archive from [`@sveltejs_vite-plugin-svelte.json`](./@sveltejs_vite-plugin-svelte.json).
    Each archive JSON must expose a `tarball` (or `dist.tarballBase64`) property containing the base64-encoded tarball payload
    plus at least a `name` and `version` so the helper can organise the output folder.
 
