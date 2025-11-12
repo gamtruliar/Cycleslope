@@ -31,7 +31,7 @@ A static, frontend-only web application hosted on GitHub Pages that aggregates H
   /icons/*                 # Optional icon assets
   /og/*                    # Open Graph images
 /src
-  main.ts                  # Vite entry point
+  main.js                  # Vite entry point
   App.svelte               # Root component
   lib/
     csv.ts                 # CSV loading and Zod validation

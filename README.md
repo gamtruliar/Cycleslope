@@ -31,7 +31,7 @@ Hong Kong Cycling Slopes Info Hub is a static single-page application designed t
   /icons/*                  # Optional icon set
   /og/*                     # Open Graph assets
 /src
-  main.ts                   # Application bootstrap
+  main.js                   # Application bootstrap
   App.svelte                # Root component
   lib/
     csv.ts                  # CSV loading, validation, typing
