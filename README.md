@@ -50,24 +50,31 @@ tailwind.config.js
 
 ## Development Workflow
 
-1. **Install dependencies**
+1. **Seed any offline package archives**
    ```bash
-   pnpm install
+   npm run offline:extract -- @sveltejs_vite-plugin-svelte.json
    ```
-2. **Run the dev server**
-   ```bash
-   pnpm dev
-   ```
-3. **Execute the test suite**
-   ```bash
-   pnpm test
-   ```
-4. **Build for production**
-   ```bash
-   pnpm build
-   ```
+   The helper extracts a base64-encoded `.tgz` archive into `offline-packages/`. Pass any additional JSON archives you have on
+   disk to the same command to prepare their folders before installing dependencies.
+   Each archive JSON must expose a `tarball` (or `dist.tarballBase64`) property containing the base64-encoded tarball payload
+   plus at least a `name` and `version` so the helper can organise the output folder.
 
-> Adjust commands if you prefer npm or yarn.
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+3. **Run the dev server**
+   ```bash
+   npm run dev
+   ```
+4. **Execute the test suite**
+   ```bash
+   npm test
+   ```
+5. **Build for production**
+   ```bash
+   npm run build
+   ```
 
 ## Deployment
 

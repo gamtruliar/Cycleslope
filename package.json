@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "offline:extract": "node scripts/use-offline-package.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
