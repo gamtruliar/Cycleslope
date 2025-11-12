@@ -2,6 +2,8 @@
 
 Hong Kong Cycling Slopes Info Hub is a static single-page application designed to catalogue steep cycling routes across Hong Kong and to help riders evaluate whether each climb suits their current setup and fitness. The project targets GitHub Pages hosting with zero server-side dependencies.
 
+👉 **Live demo:** https://gamtruliar.github.io/Cycleslope/
+
 ## Project Goals
 
 * Provide a searchable, filterable list of notable Hong Kong cycling climbs backed by a validated CSV dataset.
@@ -79,9 +81,11 @@ tailwind.config.js
 
 ## Deployment
 
-* Configure Vite with `base: '/hk-slopes/'` to ensure correct asset paths when served from GitHub Pages.
-* Use GitHub Actions (Node 20) to build the site and publish the `dist/` folder to the `gh-pages` branch.
-* Enable GitHub Pages in repository settings and point it to the GitHub Actions workflow.
+The repository ships with an automated GitHub Pages workflow located at [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
+
+1. Ensure the repository has GitHub Pages enabled for the `gh-pages` branch using the **GitHub Actions** source option.
+2. Push changes to the `main` branch (or trigger the workflow manually via **Run workflow**). The workflow installs dependencies, builds the Vite project, and publishes the `dist/` output as a GitHub Pages artifact.
+3. Once the workflow completes, GitHub Pages serves the production build at https://gamtruliar.github.io/Cycleslope/.
 
 ## Data Updates
 
