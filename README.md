@@ -2,6 +2,8 @@
 
 Hong Kong Cycling Slopes Info Hub is a static single-page application designed to catalogue steep cycling routes across Hong Kong and to help riders evaluate whether each climb suits their current setup and fitness. The project targets GitHub Pages hosting with zero server-side dependencies.
 
+👉 **Live demo:** https://gamtruliar.github.io/Cycleslope/
+
 ## Project Goals
 
 * Provide a searchable, filterable list of notable Hong Kong cycling climbs backed by a validated CSV dataset.
@@ -50,30 +52,40 @@ tailwind.config.js
 
 ## Development Workflow
 
-1. **Install dependencies**
+1. **Seed any offline package archives**
    ```bash
-   pnpm install
+   npm run offline:extract -- @sveltejs_vite-plugin-svelte.json
    ```
-2. **Run the dev server**
-   ```bash
-   pnpm dev
-   ```
-3. **Execute the test suite**
-   ```bash
-   pnpm test
-   ```
-4. **Build for production**
-   ```bash
-   pnpm build
-   ```
+   The helper extracts a base64-encoded `.tgz` archive into `offline-packages/`. Pass any additional JSON archives you have on
+   disk to the same command to prepare their folders before installing dependencies. You can download the pre-seeded
+   `@sveltejs/vite-plugin-svelte` archive from [`@sveltejs_vite-plugin-svelte.json`](https://github.com/gamtruliar/Cycleslope/blob/main/@sveltejs_vite-plugin-svelte.json).
+   Each archive JSON must expose a `tarball` (or `dist.tarballBase64`) property containing the base64-encoded tarball payload
+   plus at least a `name` and `version` so the helper can organise the output folder.
 
-> Adjust commands if you prefer npm or yarn.
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+3. **Run the dev server**
+   ```bash
+   npm run dev
+   ```
+4. **Execute the test suite**
+   ```bash
+   npm test
+   ```
+5. **Build for production**
+   ```bash
+   npm run build
+   ```
 
 ## Deployment
 
-* Configure Vite with `base: '/hk-slopes/'` to ensure correct asset paths when served from GitHub Pages.
-* Use GitHub Actions (Node 20) to build the site and publish the `dist/` folder to the `gh-pages` branch.
-* Enable GitHub Pages in repository settings and point it to the GitHub Actions workflow.
+The repository ships with an automated GitHub Pages workflow located at [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
+
+1. Ensure the repository has GitHub Pages enabled for the `gh-pages` branch using the **GitHub Actions** source option.
+2. Push changes to the `main` branch (or trigger the workflow manually via **Run workflow**). The workflow installs dependencies, builds the Vite project, and publishes the `dist/` output as a GitHub Pages artifact.
+3. Once the workflow completes, GitHub Pages serves the production build at https://gamtruliar.github.io/Cycleslope/.
 
 ## Data Updates
 

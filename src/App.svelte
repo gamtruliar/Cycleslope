@@ -1,0 +1,58 @@
+<script lang="ts">
+  import TopBar from './components/TopBar.svelte';
+  import HeroSection from './components/HeroSection.svelte';
+  import Filters from './components/Filters.svelte';
+  import UserProfile from './components/UserProfile.svelte';
+  import SlopeTable from './components/SlopeTable.svelte';
+  import MapView from './components/MapView.svelte';
+</script>
+
+<TopBar />
+<main class="container">
+  <HeroSection />
+  <Filters />
+  <UserProfile />
+  <SlopeTable />
+  <MapView />
+</main>
+<footer>
+  <div class="container footer__content">
+    <p>Prototype build &bull; Data integration coming soon.</p>
+    <nav>
+      <a href="https://github.com/">GitHub</a>
+      <a href="mailto:hello@hk-slopes.example">Contact</a>
+      <a href="#">Privacy</a>
+    </nav>
+  </div>
+</footer>
+
+<style>
+  main {
+    padding-bottom: 4rem;
+  }
+
+  footer {
+    background: rgba(15, 23, 42, 0.9);
+    color: white;
+    padding: 2rem 0;
+  }
+
+  .footer__content {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    align-items: center;
+  }
+
+  nav {
+    display: flex;
+    gap: 1rem;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+</style>
