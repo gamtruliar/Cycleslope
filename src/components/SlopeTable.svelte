@@ -1,6 +1,29 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import SuitabilityBadge from './SuitabilityBadge.svelte';
   import { t } from '../i18n';
+  import {
+    formatDistance,
+    formatGradient,
+    loadSlopes,
+    slopeError,
+    slopeLoadState,
+    slopes,
+  } from '../lib/slopes';
+
+  const slopesCsvUrl = `${import.meta.env.BASE_URL}data/slopes.csv`;
+
+  onMount(() => {
+    loadSlopes().catch((error) => {
+      console.error('Failed to load slopes dataset', error);
+    });
+  });
+
+  const handleRetry = () => {
+    loadSlopes(true).catch((error) => {
+      console.error('Failed to reload slopes dataset', error);
+    });
+  };
 </script>
 
 <section id="slopes" class="slopes glass">
@@ -9,7 +32,7 @@
       <p class="eyebrow">{$t.slopes.eyebrow}</p>
       <h2>{$t.slopes.title}</h2>
     </div>
-    <button>{$t.slopes.cta}</button>
+    <a class="download" href={slopesCsvUrl} download>{$t.slopes.cta}</a>
   </header>
 
   <table>
@@ -23,18 +46,38 @@
       </tr>
     </thead>
     <tbody>
-      {#each $t.slopes.rows as row}
+      {#if $slopeLoadState === 'loading'}
         <tr>
-          <td>
-            <strong>{row.name}</strong>
-            <span class="caption">{$t.slopes.caption}</span>
-          </td>
-          <td>{row.location}</td>
-          <td>{row.distance}</td>
-          <td>{row.gradient}</td>
-          <td><SuitabilityBadge level={row.suitability} /></td>
+          <td colspan="5" class="table-message">{$t.slopes.loading}</td>
         </tr>
-      {/each}
+      {:else if $slopeLoadState === 'error'}
+        <tr>
+          <td colspan="5" class="table-message">
+            <span>{$t.slopes.error}</span>
+            {#if $slopeError}
+              <span class="table-message__detail">{$slopeError}</span>
+            {/if}
+            <button class="retry" on:click={handleRetry}>{$t.slopes.retry}</button>
+          </td>
+        </tr>
+      {:else if $slopes.length === 0}
+        <tr>
+          <td colspan="5" class="table-message">{$t.slopes.empty}</td>
+        </tr>
+      {:else}
+        {#each $slopes as row}
+          <tr>
+            <td>
+              <strong>{row.name}</strong>
+              <span class="caption">{$t.slopes.caption}</span>
+            </td>
+            <td>{row.location}</td>
+            <td>{formatDistance(row.distanceKm)}</td>
+            <td>{formatGradient(row.avgGradient)}</td>
+            <td><SuitabilityBadge level={row.suitability} /></td>
+          </tr>
+        {/each}
+      {/if}
     </tbody>
   </table>
   <footer>
@@ -69,7 +112,10 @@
     margin: 0.5rem 0 0;
   }
 
-  button {
+  .download {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: none;
     background: rgba(37, 99, 235, 0.15);
     color: #1d4ed8;
@@ -77,6 +123,14 @@
     border-radius: 999px;
     font-weight: 600;
     cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .download:hover,
+  .download:focus-visible {
+    background: rgba(37, 99, 235, 0.25);
+    color: #1d4ed8;
   }
 
   table {
@@ -104,6 +158,31 @@
 
   tbody tr:not(:last-child) {
     border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  }
+
+  .table-message {
+    text-align: center;
+    padding: 2rem 1.25rem;
+    color: #475569;
+    display: grid;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  .table-message__detail {
+    font-size: 0.85rem;
+    color: #94a3b8;
+  }
+
+  .retry {
+    justify-self: center;
+    border: none;
+    background: rgba(37, 99, 235, 0.12);
+    color: #1d4ed8;
+    padding: 0.45rem 1.1rem;
+    border-radius: 999px;
+    font-weight: 600;
+    cursor: pointer;
   }
 
   strong {
