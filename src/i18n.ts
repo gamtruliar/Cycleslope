@@ -63,28 +63,23 @@ const translations = {
       title: '設定你目前的單車與輸出。',
       bike: {
         title: '車款與傳動',
-        items: [
-          { label: '車款', value: '耐力公路' },
-          { label: '前齒盤', value: '50 / 34' },
-          { label: '飛輪', value: '11 - 34' },
-          { label: '外胎', value: '28c 無內胎' },
-        ],
       },
       power: {
         title: '功率概況',
-        items: [
-          { label: 'FTP', value: '240 W' },
-          { label: '體重', value: '68 kg' },
-          { label: 'W/kg', value: '3.5' },
-          { label: '爬坡風格', value: '坐姿柴油型' },
-        ],
+      },
+      form: {
+        frontChainring: '最細前齒盤 (T)',
+        rearSprocket: '最大飛輪 (T)',
+        wheelCircumference: '輪圈周長 (毫米)',
+        ftp: 'FTP (瓦特)',
+        mass: '總重 (公斤)',
+        minCadence: '最低踏頻 (rpm)',
+        helper: '設定會自動儲存在本機瀏覽器，稍後的適配計算會沿用這些數值。',
       },
       callout: {
         title: '下一步？',
-        bodyPrefix: '此卡片稍後會演化為可同步 ',
-        bodySuffix: ' 的互動表單。暫時先示範最終體驗預計的版面與層次。',
-        codeLabel: 'localStorage',
-        button: '規劃變速檢查',
+        body: '這些欄位會連接到即將推出的功率與齒比分析工具。',
+        button: '重設為預設值',
       },
     },
     slopes: {
@@ -95,6 +90,7 @@ const translations = {
         climb: '爬坡',
         district: '地區',
         distance: '距離',
+        ascent: '總爬升',
         gradient: '平均坡度',
         suitability: '適合程度',
       },
@@ -133,6 +129,12 @@ const translations = {
       title: '查看各路段位置。',
       pins: ['大帽山', '飛鵝山', '柏架山'],
       caption: '正式版本會以 Leaflet 與真實地圖圖磚取代此佔位示意。',
+      dataset: {
+        loading: '正在載入路線資料…',
+        error: '無法載入路線資料。',
+        retry: '再試一次',
+        summary: '{groups} 條路線 · {points} 個座標點',
+      },
     },
     footer: {
       message: '原型版本 • 數據整合即將推出。',
@@ -207,29 +209,23 @@ const translations = {
       title: 'Dial in your current bike and power.',
       bike: {
         title: 'Bike & drivetrain',
-        items: [
-          { label: 'Bike type', value: 'Endurance road' },
-          { label: 'Chainring', value: '50 / 34' },
-          { label: 'Cassette', value: '11 - 34' },
-          { label: 'Tyres', value: '28c tubeless' },
-        ],
       },
       power: {
         title: 'Power profile',
-        items: [
-          { label: 'FTP', value: '240 W' },
-          { label: 'Weight', value: '68 kg' },
-          { label: 'W/kg', value: '3.5' },
-          { label: 'Climb style', value: 'Seated diesel' },
-        ],
+      },
+      form: {
+        frontChainring: 'Smallest chainring (T)',
+        rearSprocket: 'Largest sprocket (T)',
+        wheelCircumference: 'Wheel circumference (mm)',
+        ftp: 'FTP (W)',
+        mass: 'Total mass (kg)',
+        minCadence: 'Min cadence (rpm)',
+        helper: 'Your selections are stored in this browser and will feed upcoming suitability calculations.',
       },
       callout: {
         title: "What's next?",
-        bodyPrefix: 'This card will evolve into an interactive form syncing to ',
-        bodySuffix:
-          '. For now, it demonstrates the spatial design and tonal hierarchy planned for the final experience.',
-        codeLabel: 'localStorage',
-        button: 'Plan a gearing check',
+        body: 'These inputs will connect directly to the upcoming power and gearing tools.',
+        button: 'Restore defaults',
       },
     },
     slopes: {
@@ -240,6 +236,7 @@ const translations = {
         climb: 'Climb',
         district: 'District',
         distance: 'Distance',
+        ascent: 'Total ascent',
         gradient: 'Avg. gradient',
         suitability: 'Suitability',
       },
@@ -278,6 +275,12 @@ const translations = {
       title: 'Visualise climb locations.',
       pins: ['Tai Mo Shan', 'Fei Ngo Shan', 'Mount Parker'],
       caption: 'Leaflet and real map tiles will replace this placeholder in the production build.',
+      dataset: {
+        loading: 'Loading path data…',
+        error: 'Unable to load the path dataset.',
+        retry: 'Try again',
+        summary: '{groups} route groups · {points} coordinates loaded',
+      },
     },
     footer: {
       message: 'Prototype build • Data integration coming soon.',
