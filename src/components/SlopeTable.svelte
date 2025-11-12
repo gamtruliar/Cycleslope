@@ -3,22 +3,22 @@
 
   const sampleRows = [
     {
-      name: 'Tai Mo Shan Access Road',
-      location: 'Tsuen Wan',
+      name: '大帽山通道',
+      location: '荃灣',
       distance: '5.6 km',
       gradient: '9.5%',
       suitability: 'Challenging' as const,
     },
     {
-      name: 'Fei Ngo Shan',
-      location: 'Kowloon',
+      name: '飛鵝山',
+      location: '九龍',
       distance: '3.8 km',
       gradient: '10.2%',
       suitability: 'Brutal' as const,
     },
     {
-      name: 'Mount Parker Road',
-      location: 'Quarry Bay',
+      name: '柏架山道',
+      location: '鰂魚涌',
       distance: '4.0 km',
       gradient: '8.1%',
       suitability: 'Friendly' as const,
@@ -29,20 +29,20 @@
 <section id="slopes" class="slopes glass">
   <header>
     <div>
-      <p class="eyebrow">Climb directory</p>
-      <h2>Preview the upcoming catalogue.</h2>
+      <p class="eyebrow">爬坡清單</p>
+      <h2>預覽即將上線的名錄。</h2>
     </div>
-    <button>Download CSV</button>
+    <button>下載 CSV</button>
   </header>
 
   <table>
     <thead>
       <tr>
-        <th>Climb</th>
-        <th>District</th>
-        <th>Distance</th>
-        <th>Avg. gradient</th>
-        <th>Suitability</th>
+        <th>爬坡</th>
+        <th>地區</th>
+        <th>距離</th>
+        <th>平均坡度</th>
+        <th>適合程度</th>
       </tr>
     </thead>
     <tbody>
@@ -50,7 +50,7 @@
         <tr>
           <td>
             <strong>{row.name}</strong>
-            <span class="caption">Featured climb</span>
+            <span class="caption">精選爬坡</span>
           </td>
           <td>{row.location}</td>
           <td>{row.distance}</td>
@@ -61,7 +61,7 @@
     </tbody>
   </table>
   <footer>
-    <p>Sorting, filtering, and pagination will be enabled once data integration lands.</p>
+    <p>待完成數據整合後即可提供排序、篩選與分頁功能。</p>
   </footer>
 </section>
 

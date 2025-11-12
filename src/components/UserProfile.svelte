@@ -1,39 +1,39 @@
 <section id="profile" class="profile glass">
   <header>
-    <p class="eyebrow">Your setup</p>
-    <h2>Dial in your current bike and power.</h2>
+    <p class="eyebrow">你的設定</p>
+    <h2>設定你目前的單車與輸出。</h2>
   </header>
   <div class="profile__grid">
     <div class="profile__card">
-      <h3>Bike & drivetrain</h3>
+      <h3>車款與傳動</h3>
       <ul>
         <li>
-          <span class="label">Bike type</span>
-          <span class="value">Endurance road</span>
+          <span class="label">車款</span>
+          <span class="value">耐力公路</span>
         </li>
         <li>
-          <span class="label">Chainring</span>
+          <span class="label">前齒盤</span>
           <span class="value">50 / 34</span>
         </li>
         <li>
-          <span class="label">Cassette</span>
+          <span class="label">飛輪</span>
           <span class="value">11 - 34</span>
         </li>
         <li>
-          <span class="label">Tyres</span>
-          <span class="value">28c tubeless</span>
+          <span class="label">外胎</span>
+          <span class="value">28c 無內胎</span>
         </li>
       </ul>
     </div>
     <div class="profile__card">
-      <h3>Power profile</h3>
+      <h3>功率概況</h3>
       <ul>
         <li>
           <span class="label">FTP</span>
           <span class="value">240 W</span>
         </li>
         <li>
-          <span class="label">Weight</span>
+          <span class="label">體重</span>
           <span class="value">68 kg</span>
         </li>
         <li>
@@ -41,18 +41,17 @@
           <span class="value">3.5</span>
         </li>
         <li>
-          <span class="label">Climb style</span>
-          <span class="value">Seated diesel</span>
+          <span class="label">爬坡風格</span>
+          <span class="value">坐姿柴油型</span>
         </li>
       </ul>
     </div>
     <div class="profile__callout">
-      <h3>What&apos;s next?</h3>
+      <h3>下一步？</h3>
       <p>
-        This card will evolve into an interactive form syncing to <code>localStorage</code>. For now, it demonstrates the
-        spatial design and tonal hierarchy planned for the final experience.
+        此卡片稍後會演化為可同步 <code>localStorage</code> 的互動表單。暫時先示範最終體驗預計的版面與層次。
       </p>
-      <button>Plan a gearing check</button>
+      <button>規劃變速檢查</button>
     </div>
   </div>
 </section>

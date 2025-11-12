@@ -1,14 +1,20 @@
 <script lang="ts">
   export let level: 'Friendly' | 'Challenging' | 'Brutal' = 'Friendly';
+
+  const labelMap = {
+    Friendly: '友善',
+    Challenging: '具挑戰性',
+    Brutal: '極限',
+  } as const;
 </script>
 
 <span class={`badge badge--${level.toLowerCase()}`}>
   {#if level === 'Friendly'}
-    🌤️ {level}
+    🌤️ {labelMap[level]}
   {:else if level === 'Challenging'}
-    ⚡ {level}
+    ⚡ {labelMap[level]}
   {:else}
-    🧗‍♂️ {level}
+    🧗‍♂️ {labelMap[level]}
   {/if}
 </span>
 

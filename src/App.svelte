@@ -17,11 +17,11 @@
 </main>
 <footer>
   <div class="container footer__content">
-    <p>Prototype build &bull; Data integration coming soon.</p>
+    <p>原型版本 &bull; 數據整合即將推出。</p>
     <nav>
       <a href="https://github.com/">GitHub</a>
-      <a href="mailto:hello@hk-slopes.example">Contact</a>
-      <a href="https://example.com/privacy" rel="noreferrer">Privacy</a>
+      <a href="mailto:hello@hk-slopes.example">聯絡我們</a>
+      <a href="https://example.com/privacy" rel="noreferrer">私隱政策</a>
     </nav>
   </div>
 </footer>

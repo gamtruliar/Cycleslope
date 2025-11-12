@@ -3,17 +3,17 @@
     <div class="topbar__brand">
       <span class="brand-icon">🚴‍♀️</span>
       <div>
-        <p class="brand-title">HK Cycling Slopes</p>
-        <p class="brand-subtitle">Prototype UI</p>
+        <p class="brand-title">香港單車爬坡</p>
+        <p class="brand-subtitle">介面原型</p>
       </div>
     </div>
     <nav class="topbar__nav">
-      <a href="#filters">Filters</a>
-      <a href="#profile">Your Setup</a>
-      <a href="#slopes">Climbs</a>
-      <a href="#map">Map</a>
+      <a href="#filters">篩選</a>
+      <a href="#profile">你的設定</a>
+      <a href="#slopes">爬坡列表</a>
+      <a href="#map">地圖</a>
     </nav>
-    <button class="cta">Join Beta</button>
+    <button class="cta">訂閱更新</button>
   </div>
 </header>
 

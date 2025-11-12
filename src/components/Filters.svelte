@@ -1,31 +1,31 @@
 <section id="filters" class="filters glass">
   <header>
-    <p class="eyebrow">Filters</p>
-    <h2>Find the climb that matches your mood.</h2>
+    <p class="eyebrow">篩選</p>
+    <h2>找到符合當日狀態的爬坡。</h2>
   </header>
   <div class="filters__grid">
     <div class="filter-group">
-      <label for="filter-search">Search climbs</label>
+      <label for="filter-search">搜尋爬坡</label>
       <div class="input-group">
         <span>🔍</span>
         <input
           id="filter-search"
           type="text"
-          placeholder="Type a climb or district"
+          placeholder="輸入爬坡或地區"
           disabled
         />
       </div>
     </div>
     <div class="filter-group">
-      <p class="field-label" id="difficulty-label">Difficulty focus</p>
+      <p class="field-label" id="difficulty-label">難度重點</p>
       <div class="pill-group" role="group" aria-labelledby="difficulty-label">
-        <button>Beginner</button>
-        <button class="active">Progression</button>
-        <button>Advanced</button>
+        <button>入門</button>
+        <button class="active">進階</button>
+        <button>高手</button>
       </div>
     </div>
     <div class="filter-group">
-      <p class="field-label">Gradient</p>
+      <p class="field-label">坡度</p>
       <div class="range-preview">
         <div class="range-track">
           <div class="range-fill"></div>
@@ -37,15 +37,15 @@
       </div>
     </div>
     <div class="filter-group">
-      <p class="field-label">Distance</p>
+      <p class="field-label">距離</p>
       <div class="chip-row">
-        <span class="chip">Short <strong>&lt; 3 km</strong></span>
-        <span class="chip">Medium <strong>3-6 km</strong></span>
-        <span class="chip">Long <strong>&gt; 6 km</strong></span>
+        <span class="chip">短程 <strong>&lt; 3 公里</strong></span>
+        <span class="chip">中程 <strong>3-6 公里</strong></span>
+        <span class="chip">長程 <strong>&gt; 6 公里</strong></span>
       </div>
     </div>
   </div>
-  <p class="filters__note">Interactive controls will be wired up once the dataset plumbing is complete.</p>
+  <p class="filters__note">待數據管線完成後即可操作這些互動控制。</p>
 </section>
 
 <style>
