@@ -5,22 +5,27 @@
   </header>
   <div class="filters__grid">
     <div class="filter-group">
-      <label>Search climbs</label>
+      <label for="filter-search">Search climbs</label>
       <div class="input-group">
         <span>🔍</span>
-        <input type="text" placeholder="Type a climb or district" disabled />
+        <input
+          id="filter-search"
+          type="text"
+          placeholder="Type a climb or district"
+          disabled
+        />
       </div>
     </div>
     <div class="filter-group">
-      <label>Difficulty focus</label>
-      <div class="pill-group">
+      <p class="field-label" id="difficulty-label">Difficulty focus</p>
+      <div class="pill-group" role="group" aria-labelledby="difficulty-label">
         <button>Beginner</button>
         <button class="active">Progression</button>
         <button>Advanced</button>
       </div>
     </div>
     <div class="filter-group">
-      <label>Gradient</label>
+      <p class="field-label">Gradient</p>
       <div class="range-preview">
         <div class="range-track">
           <div class="range-fill"></div>
@@ -32,7 +37,7 @@
       </div>
     </div>
     <div class="filter-group">
-      <label>Distance</label>
+      <p class="field-label">Distance</p>
       <div class="chip-row">
         <span class="chip">Short <strong>&lt; 3 km</strong></span>
         <span class="chip">Medium <strong>3-6 km</strong></span>
@@ -78,8 +83,13 @@
     gap: 0.85rem;
   }
 
-  label {
+  label,
+  .field-label {
     font-weight: 600;
+  }
+
+  .field-label {
+    margin: 0;
   }
 
   .input-group {
