@@ -100,6 +100,10 @@ const translations = {
       },
       caption: '精選爬坡',
       footer: '待完成數據整合後即可提供排序、篩選與分頁功能。',
+      loading: '正在載入爬坡資料…',
+      error: '無法載入爬坡資料。',
+      retry: '再試一次',
+      empty: '暫時未有可顯示的爬坡。',
       rows: [
         {
           name: '大帽山通道',
@@ -241,6 +245,10 @@ const translations = {
       },
       caption: 'Featured climb',
       footer: 'Sorting, filtering, and pagination will be enabled once data integration lands.',
+      loading: 'Loading climbs…',
+      error: 'Unable to load the climbs dataset.',
+      retry: 'Try again',
+      empty: 'No climbs available yet.',
       rows: [
         {
           name: 'Tai Mo Shan Access Road',
