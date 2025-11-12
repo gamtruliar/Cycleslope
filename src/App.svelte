@@ -5,6 +5,7 @@
   import UserProfile from './components/UserProfile.svelte';
   import SlopeTable from './components/SlopeTable.svelte';
   import MapView from './components/MapView.svelte';
+  import { t } from './i18n';
 </script>
 
 <TopBar />
@@ -17,11 +18,11 @@
 </main>
 <footer>
   <div class="container footer__content">
-    <p>原型版本 &bull; 數據整合即將推出。</p>
+    <p>{$t.footer.message}</p>
     <nav>
-      <a href="https://github.com/">GitHub</a>
-      <a href="mailto:hello@hk-slopes.example">聯絡我們</a>
-      <a href="https://example.com/privacy" rel="noreferrer">私隱政策</a>
+      <a href="https://github.com/">{$t.footer.links.github}</a>
+      <a href="mailto:hello@hk-slopes.example">{$t.footer.links.contact}</a>
+      <a href="https://example.com/privacy" rel="noreferrer">{$t.footer.links.privacy}</a>
     </nav>
   </div>
 </footer>

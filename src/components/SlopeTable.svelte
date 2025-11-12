@@ -1,56 +1,33 @@
 <script lang="ts">
   import SuitabilityBadge from './SuitabilityBadge.svelte';
-
-  const sampleRows = [
-    {
-      name: '大帽山通道',
-      location: '荃灣',
-      distance: '5.6 km',
-      gradient: '9.5%',
-      suitability: 'Challenging' as const,
-    },
-    {
-      name: '飛鵝山',
-      location: '九龍',
-      distance: '3.8 km',
-      gradient: '10.2%',
-      suitability: 'Brutal' as const,
-    },
-    {
-      name: '柏架山道',
-      location: '鰂魚涌',
-      distance: '4.0 km',
-      gradient: '8.1%',
-      suitability: 'Friendly' as const,
-    },
-  ];
+  import { t } from '../i18n';
 </script>
 
 <section id="slopes" class="slopes glass">
   <header>
     <div>
-      <p class="eyebrow">爬坡清單</p>
-      <h2>預覽即將上線的名錄。</h2>
+      <p class="eyebrow">{$t.slopes.eyebrow}</p>
+      <h2>{$t.slopes.title}</h2>
     </div>
-    <button>下載 CSV</button>
+    <button>{$t.slopes.cta}</button>
   </header>
 
   <table>
     <thead>
       <tr>
-        <th>爬坡</th>
-        <th>地區</th>
-        <th>距離</th>
-        <th>平均坡度</th>
-        <th>適合程度</th>
+        <th>{$t.slopes.columns.climb}</th>
+        <th>{$t.slopes.columns.district}</th>
+        <th>{$t.slopes.columns.distance}</th>
+        <th>{$t.slopes.columns.gradient}</th>
+        <th>{$t.slopes.columns.suitability}</th>
       </tr>
     </thead>
     <tbody>
-      {#each sampleRows as row}
+      {#each $t.slopes.rows as row}
         <tr>
           <td>
             <strong>{row.name}</strong>
-            <span class="caption">精選爬坡</span>
+            <span class="caption">{$t.slopes.caption}</span>
           </td>
           <td>{row.location}</td>
           <td>{row.distance}</td>
@@ -61,7 +38,7 @@
     </tbody>
   </table>
   <footer>
-    <p>待完成數據整合後即可提供排序、篩選與分頁功能。</p>
+    <p>{$t.slopes.footer}</p>
   </footer>
 </section>
 

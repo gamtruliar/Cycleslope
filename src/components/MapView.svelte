@@ -1,24 +1,24 @@
+<script lang="ts">
+  import { t } from '../i18n';
+
+  const pinClasses = ['map__pin--one', 'map__pin--two', 'map__pin--three'];
+</script>
+
 <section id="map" class="map glass">
   <header>
-    <p class="eyebrow">地圖預覽</p>
-    <h2>查看各路段位置。</h2>
+    <p class="eyebrow">{$t.map.eyebrow}</p>
+    <h2>{$t.map.title}</h2>
   </header>
   <div class="map__canvas">
     <div class="map__grid">
-      <div class="map__pin map__pin--one">
-        <span>📍</span>
-        <p>大帽山</p>
-      </div>
-      <div class="map__pin map__pin--two">
-        <span>📍</span>
-        <p>飛鵝山</p>
-      </div>
-      <div class="map__pin map__pin--three">
-        <span>📍</span>
-        <p>柏架山</p>
-      </div>
+      {#each $t.map.pins as pin, index}
+        <div class={`map__pin ${pinClasses[index] ?? ''}`}>
+          <span>📍</span>
+          <p>{pin}</p>
+        </div>
+      {/each}
     </div>
-    <p class="map__caption">正式版本會以 Leaflet 與真實地圖圖磚取代此佔位示意。</p>
+    <p class="map__caption">{$t.map.caption}</p>
   </div>
 </section>
 

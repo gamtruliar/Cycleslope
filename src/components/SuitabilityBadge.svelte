@@ -1,20 +1,16 @@
 <script lang="ts">
-  export let level: 'Friendly' | 'Challenging' | 'Brutal' = 'Friendly';
+  import { t, type SuitabilityLevel } from '../i18n';
 
-  const labelMap = {
-    Friendly: '友善',
-    Challenging: '具挑戰性',
-    Brutal: '極限',
-  } as const;
+  export let level: SuitabilityLevel = 'Friendly';
 </script>
 
 <span class={`badge badge--${level.toLowerCase()}`}>
   {#if level === 'Friendly'}
-    🌤️ {labelMap[level]}
+    🌤️ {$t.suitability[level]}
   {:else if level === 'Challenging'}
-    ⚡ {labelMap[level]}
+    ⚡ {$t.suitability[level]}
   {:else}
-    🧗‍♂️ {labelMap[level]}
+    🧗‍♂️ {$t.suitability[level]}
   {/if}
 </span>
 

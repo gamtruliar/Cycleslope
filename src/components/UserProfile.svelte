@@ -1,57 +1,43 @@
+<script lang="ts">
+  import { t } from '../i18n';
+</script>
+
 <section id="profile" class="profile glass">
   <header>
-    <p class="eyebrow">你的設定</p>
-    <h2>設定你目前的單車與輸出。</h2>
+    <p class="eyebrow">{$t.profile.eyebrow}</p>
+    <h2>{$t.profile.title}</h2>
   </header>
   <div class="profile__grid">
     <div class="profile__card">
-      <h3>車款與傳動</h3>
+      <h3>{$t.profile.bike.title}</h3>
       <ul>
-        <li>
-          <span class="label">車款</span>
-          <span class="value">耐力公路</span>
-        </li>
-        <li>
-          <span class="label">前齒盤</span>
-          <span class="value">50 / 34</span>
-        </li>
-        <li>
-          <span class="label">飛輪</span>
-          <span class="value">11 - 34</span>
-        </li>
-        <li>
-          <span class="label">外胎</span>
-          <span class="value">28c 無內胎</span>
-        </li>
+        {#each $t.profile.bike.items as item}
+          <li>
+            <span class="label">{item.label}</span>
+            <span class="value">{item.value}</span>
+          </li>
+        {/each}
       </ul>
     </div>
     <div class="profile__card">
-      <h3>功率概況</h3>
+      <h3>{$t.profile.power.title}</h3>
       <ul>
-        <li>
-          <span class="label">FTP</span>
-          <span class="value">240 W</span>
-        </li>
-        <li>
-          <span class="label">體重</span>
-          <span class="value">68 kg</span>
-        </li>
-        <li>
-          <span class="label">W/kg</span>
-          <span class="value">3.5</span>
-        </li>
-        <li>
-          <span class="label">爬坡風格</span>
-          <span class="value">坐姿柴油型</span>
-        </li>
+        {#each $t.profile.power.items as item}
+          <li>
+            <span class="label">{item.label}</span>
+            <span class="value">{item.value}</span>
+          </li>
+        {/each}
       </ul>
     </div>
     <div class="profile__callout">
-      <h3>下一步？</h3>
+      <h3>{$t.profile.callout.title}</h3>
       <p>
-        此卡片稍後會演化為可同步 <code>localStorage</code> 的互動表單。暫時先示範最終體驗預計的版面與層次。
+        {$t.profile.callout.bodyPrefix}
+        <code>{$t.profile.callout.codeLabel}</code>
+        {$t.profile.callout.bodySuffix}
       </p>
-      <button>規劃變速檢查</button>
+      <button>{$t.profile.callout.button}</button>
     </div>
   </div>
 </section>

@@ -1,27 +1,29 @@
+<script lang="ts">
+  import { t } from '../i18n';
+</script>
+
 <section class="hero glass">
   <div class="hero__content">
     <div class="hero__text">
-      <p class="eyebrow">香港單車爬坡資訊站</p>
-      <h1>自信規劃下一段爬坡。</h1>
-      <p class="lead">
-        探索坡度、比較變速組合，並視覺化香港經典爬坡。此靜態原型展示預期版面，數據串接仍在進行中。
-      </p>
+      <p class="eyebrow">{$t.hero.eyebrow}</p>
+      <h1>{$t.hero.title}</h1>
+      <p class="lead">{$t.hero.lead}</p>
       <div class="hero__actions">
-        <button class="primary">瀏覽示例爬坡</button>
-        <button class="secondary">觀看概覽</button>
+        <button class="primary">{$t.hero.actions.primary}</button>
+        <button class="secondary">{$t.hero.actions.secondary}</button>
       </div>
       <div class="hero__stats">
         <div>
           <p class="stat-value">28</p>
-          <p class="stat-label">經典路段</p>
+          <p class="stat-label">{$t.hero.stats.climbs}</p>
         </div>
         <div>
           <p class="stat-value">+12%</p>
-          <p class="stat-label">最陡坡度</p>
+          <p class="stat-label">{$t.hero.stats.gradient}</p>
         </div>
         <div>
           <p class="stat-value">4.8★</p>
-          <p class="stat-label">車手評分</p>
+          <p class="stat-label">{$t.hero.stats.feedback}</p>
         </div>
       </div>
     </div>
@@ -29,20 +31,20 @@
       <div class="hero__card">
         <p class="badge">
           <span>🔥</span>
-          焦點爬坡
+          {$t.hero.card.badge}
         </p>
-        <h2>大帽山通道</h2>
+        <h2>{$t.hero.card.title}</h2>
         <div class="hero__metrics">
           <div>
-            <span class="metric-label">距離</span>
+            <span class="metric-label">{$t.hero.card.distanceLabel}</span>
             <span class="metric-value">5.6 km</span>
           </div>
           <div>
-            <span class="metric-label">平均坡度</span>
+            <span class="metric-label">{$t.hero.card.gradientLabel}</span>
             <span class="metric-value">9.5%</span>
           </div>
           <div>
-            <span class="metric-label">預估時間</span>
+            <span class="metric-label">{$t.hero.card.timeLabel}</span>
             <span class="metric-value">32 min</span>
           </div>
         </div>
@@ -51,7 +53,7 @@
           <div class="chart-peak"></div>
           <div class="chart-peak chart-peak--secondary"></div>
         </div>
-        <p class="hero__note">正式版本將會在此顯示即時數據與計算。</p>
+        <p class="hero__note">{$t.hero.card.note}</p>
       </div>
     </div>
   </div>

@@ -1,51 +1,55 @@
+<script lang="ts">
+  import { t } from '../i18n';
+</script>
+
 <section id="filters" class="filters glass">
   <header>
-    <p class="eyebrow">篩選</p>
-    <h2>找到符合當日狀態的爬坡。</h2>
+    <p class="eyebrow">{$t.filters.eyebrow}</p>
+    <h2>{$t.filters.title}</h2>
   </header>
   <div class="filters__grid">
     <div class="filter-group">
-      <label for="filter-search">搜尋爬坡</label>
+      <label for="filter-search">{$t.filters.searchLabel}</label>
       <div class="input-group">
         <span>🔍</span>
         <input
           id="filter-search"
           type="text"
-          placeholder="輸入爬坡或地區"
+          placeholder={$t.filters.searchPlaceholder}
           disabled
         />
       </div>
     </div>
     <div class="filter-group">
-      <p class="field-label" id="difficulty-label">難度重點</p>
+      <p class="field-label" id="difficulty-label">{$t.filters.difficultyLabel}</p>
       <div class="pill-group" role="group" aria-labelledby="difficulty-label">
-        <button>入門</button>
-        <button class="active">進階</button>
-        <button>高手</button>
+        {#each $t.filters.difficultyOptions as option, index}
+          <button class:active={index === 1}>{option}</button>
+        {/each}
       </div>
     </div>
     <div class="filter-group">
-      <p class="field-label">坡度</p>
+      <p class="field-label">{$t.filters.gradientLabel}</p>
       <div class="range-preview">
         <div class="range-track">
           <div class="range-fill"></div>
         </div>
         <div class="range-values">
-          <span>0%</span>
-          <span>12%</span>
+          <span>{$t.filters.gradientMin}</span>
+          <span>{$t.filters.gradientMax}</span>
         </div>
       </div>
     </div>
     <div class="filter-group">
-      <p class="field-label">距離</p>
+      <p class="field-label">{$t.filters.distanceLabel}</p>
       <div class="chip-row">
-        <span class="chip">短程 <strong>&lt; 3 公里</strong></span>
-        <span class="chip">中程 <strong>3-6 公里</strong></span>
-        <span class="chip">長程 <strong>&gt; 6 公里</strong></span>
+        {#each $t.filters.distanceChips as chip}
+          <span class="chip">{chip.label} <strong>{chip.detail}</strong></span>
+        {/each}
       </div>
     </div>
   </div>
-  <p class="filters__note">待數據管線完成後即可操作這些互動控制。</p>
+  <p class="filters__note">{$t.filters.note}</p>
 </section>
 
 <style>
