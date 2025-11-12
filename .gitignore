@@ -1,2 +1,4 @@
 node_modules/
 offline-packages/
+dist/
+docs/

@@ -46,7 +46,7 @@ Hong Kong Cycling Slopes Info Hub is a static single-page application designed t
     MapView.svelte          # Optional map view
   styles/
     base.css                # Tailwind entry point
-vite.config.ts              # Vite config (with GitHub Pages base path)
+vite.config.ts              # Vite config (with relative GitHub Pages base)
 tailwind.config.js
 ```
 
@@ -78,14 +78,16 @@ tailwind.config.js
    ```bash
    npm run build
    ```
+   The build output is written to `docs/`, which GitHub Pages can publish directly.
 
 ## Deployment
 
 The repository ships with an automated GitHub Pages workflow located at [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
 
 1. Ensure the repository has GitHub Pages enabled for the `gh-pages` branch using the **GitHub Actions** source option.
-2. Push changes to the `main` branch (or trigger the workflow manually via **Run workflow**). The workflow installs dependencies, builds the Vite project, and publishes the `dist/` output as a GitHub Pages artifact.
+2. Push changes to the `main` branch (or trigger the workflow manually via **Run workflow**). The workflow installs dependencies, builds the Vite project, and publishes the `docs/` output as a GitHub Pages artifact.
 3. Once the workflow completes, GitHub Pages serves the production build at https://gamtruliar.github.io/Cycleslope/.
+   The workflow uploads the generated `docs/` directory as the deployable artifact.
 
 ## Data Updates
 

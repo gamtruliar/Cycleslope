@@ -21,7 +21,7 @@
     <nav>
       <a href="https://github.com/">GitHub</a>
       <a href="mailto:hello@hk-slopes.example">Contact</a>
-      <a href="#">Privacy</a>
+      <a href="https://example.com/privacy" rel="noreferrer">Privacy</a>
     </nav>
   </div>
 </footer>
