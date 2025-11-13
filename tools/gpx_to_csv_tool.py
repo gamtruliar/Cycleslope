@@ -122,11 +122,11 @@ def compute_statistics(points: List[TrackPoint], smoothing_points: int = 1, min_
     horizontal_for_grade = horizontal_distance_sum if horizontal_distance_sum > 0 else total_distance
     avg_grade = (total_climb / horizontal_for_grade * 100) if horizontal_for_grade > 0 else 0.0
     distance_output = horizontal_distance_sum if horizontal_distance_sum > 0 else total_distance
-    return distance_output, avg_grade, total_climb, max_grade
+    return distance_output/1000,total_climb, avg_grade,  max_grade
 def write_slopes_csv(output_dir: str, stats: tuple[float, float, float, float]) -> str:
     os.makedirs(output_dir, exist_ok=True)
     file_path = os.path.join(output_dir, "slopes.csv")
-    headers = ["距離", "平均坡度", "總爬升", "最大坡度"]
+    headers = ["distance_km", "total_ascent_m", "avg_gradient", "max_gradient"]
     with open(file_path, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(headers)
@@ -135,12 +135,12 @@ def write_slopes_csv(output_dir: str, stats: tuple[float, float, float, float]) 
 def write_paths_csv(output_dir: str, points: List[TrackPoint]) -> str:
     os.makedirs(output_dir, exist_ok=True)
     file_path = os.path.join(output_dir, "paths.csv")
-    headers = ["lat", "lng", "ele", "time"]
+    headers = ["lat", "lng", "ele"]
     with open(file_path, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(headers)
         for point in points:
-            writer.writerow([f"{point.latitude:.6f}", f"{point.longitude:.6f}", f"{point.elevation:.2f}", point.time.isoformat()])
+            writer.writerow([f"{point.latitude:.6f}", f"{point.longitude:.6f}", f"{point.elevation:.2f}"])
     return file_path
 class GPXConverterGUI:
     def __init__(self) -> None:
