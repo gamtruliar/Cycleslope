@@ -11,8 +11,8 @@
 <TopBar />
 <main class="container">
   <HeroSection />
-  <Filters />
   <UserProfile />
+  <Filters />
   <SlopeTable />
   <MapView />
 </main>

@@ -1,5 +1,19 @@
 <script lang="ts">
   import { t } from '../i18n';
+  import { searchQuery } from '../lib/filters';
+
+  let query = '';
+
+  $: query = $searchQuery;
+
+  const handleSearchInput = (event: Event) => {
+    const target = event.currentTarget as HTMLInputElement;
+    searchQuery.set(target.value);
+  };
+
+  const clearSearch = () => {
+    searchQuery.reset();
+  };
 </script>
 
 <section id="filters" class="filters glass">
@@ -16,8 +30,14 @@
           id="filter-search"
           type="text"
           placeholder={$t.filters.searchPlaceholder}
-          disabled
+          value={query}
+          on:input={handleSearchInput}
         />
+        {#if query}
+          <button type="button" class="clear" on:click={clearSearch}>
+            {$t.filters.clearSearch}
+          </button>
+        {/if}
       </div>
     </div>
     <div class="filter-group">
@@ -114,8 +134,18 @@
     color: #0f172a;
   }
 
-  input:disabled {
+  input::placeholder {
     color: #94a3b8;
+  }
+
+  .clear {
+    border: none;
+    background: transparent;
+    color: #2563eb;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0.2rem 0;
   }
 
   .pill-group {
