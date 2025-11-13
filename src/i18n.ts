@@ -7,7 +7,7 @@ const translations = {
   'zh-Hant': {
     topBar: {
       brandTitle: '香港單車爬坡',
-      brandSubtitle: '坡度配速工具',
+      brandSubtitle: '坡道資料整理',
       nav: {
         filters: '篩選',
         profile: '你的設定',
