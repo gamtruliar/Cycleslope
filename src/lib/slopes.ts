@@ -1,5 +1,7 @@
-import { writable, type Readable } from 'svelte/store';
+import { derived, writable, type Readable } from 'svelte/store';
 import type { SuitabilityLevel } from '../i18n';
+import { difficultyFilter, distanceRange, gradientRange, searchQuery } from './filters';
+import { settings, type UserSettings } from './settings';
 
 export interface SlopeRecord {
   name: string;
@@ -9,7 +11,21 @@ export interface SlopeRecord {
   avgGradient: number;
   maxGradient: number;
   pathGroupId: string;
+}
+
+export interface SlopeMetrics {
+  minSpeedMps: number;
+  averagePowerWatts: number;
+  peakPowerWatts: number;
+  ftpRatio: number;
+  peakFtpRatio: number;
+  climbTimeSeconds: number;
+}
+
+export interface EnrichedSlope extends SlopeRecord {
+  metrics: SlopeMetrics;
   suitability: SuitabilityLevel;
+  burstWarning: boolean;
 }
 
 export type SlopeLoadState = 'idle' | 'loading' | 'ready' | 'error';
@@ -24,6 +40,50 @@ let currentRequest: Promise<void> | null = null;
 export const slopes: Readable<SlopeRecord[]> = {
   subscribe: slopesStore.subscribe,
 };
+
+export const computedSlopes = derived([slopesStore, settings], ([$slopes, $settings]) => {
+  return $slopes.map((slope) => enrichSlope(slope, $settings));
+});
+
+export const filteredSlopes = derived(
+  [computedSlopes, searchQuery, difficultyFilter, gradientRange, distanceRange],
+  ([$slopes, $query, $difficulty, $gradient, $distance]) => {
+    const normalizedQuery = $query.trim().toLowerCase();
+    const difficultySet = new Set($difficulty);
+    const constrainDifficulty = difficultySet.size > 0;
+
+    return $slopes.filter((slope) => {
+      if (
+        normalizedQuery &&
+        ![slope.name, slope.location].some((value) => value.toLowerCase().includes(normalizedQuery))
+      ) {
+        return false;
+      }
+
+      if (constrainDifficulty && !difficultySet.has(slope.suitability)) {
+        return false;
+      }
+
+      if (Number.isFinite($gradient.min) && slope.avgGradient < $gradient.min) {
+        return false;
+      }
+
+      if (Number.isFinite($gradient.max) && slope.avgGradient > $gradient.max) {
+        return false;
+      }
+
+      if (Number.isFinite($distance.min) && slope.distanceKm < $distance.min) {
+        return false;
+      }
+
+      if (Number.isFinite($distance.max) && slope.distanceKm > $distance.max) {
+        return false;
+      }
+
+      return true;
+    });
+  },
+);
 
 export const slopeLoadState: Readable<SlopeLoadState> = {
   subscribe: loadStateStore.subscribe,
@@ -193,7 +253,6 @@ function transformRecord(record: Record<string, string>, lineNumber: number): Sl
     avgGradient,
     maxGradient,
     pathGroupId,
-    suitability: classifySlope(distanceKm, avgGradient, maxGradient),
   };
 }
 
@@ -210,14 +269,101 @@ function parseNumberField(value: string | undefined, field: string, lineNumber: 
   return parsed;
 }
 
-function classifySlope(distanceKm: number, avgGradient: number, maxGradient: number): SuitabilityLevel {
-  if (avgGradient >= 10 || (avgGradient >= 9 && distanceKm >= 5.5) || maxGradient >= 18) {
-    return 'Brutal';
+const G = 9.80665;
+const MIN_SPEED_FLOOR = 0.7; // metres per second (~2.5 km/h)
+const DEFAULT_CRR = 0.0045;
+const DEFAULT_CDA = 0.32;
+const DEFAULT_AIR_DENSITY = 1.226;
+
+function enrichSlope(slope: SlopeRecord, rider: UserSettings): EnrichedSlope {
+  const minSpeed = computeMinSpeed(rider);
+  const averagePower = computePowerRequirement(slope.avgGradient / 100, minSpeed, rider);
+  const peakPower = computePowerRequirement(slope.maxGradient / 100, minSpeed, rider);
+  const ftp = Math.max(rider.ftp, 1);
+  const ftpRatio = averagePower / ftp;
+  const peakFtpRatio = peakPower / ftp;
+  const climbTimeSeconds = computeClimbTime(slope.distanceKm, minSpeed);
+  const suitability = classifyDifficulty(Math.max(ftpRatio, peakFtpRatio));
+  const burstWarning = peakFtpRatio > 1.2;
+
+  return {
+    ...slope,
+    metrics: {
+      minSpeedMps: minSpeed,
+      averagePowerWatts: averagePower,
+      peakPowerWatts: peakPower,
+      ftpRatio,
+      peakFtpRatio,
+      climbTimeSeconds,
+    },
+    suitability,
+    burstWarning,
+  };
+}
+
+function computeMinSpeed(rider: UserSettings): number {
+  const front = Math.max(rider.frontChainringTeeth, 1);
+  const rear = Math.max(rider.rearSprocketTeeth, 1);
+  const ratio = front / rear;
+  const circumferenceM = Math.max(rider.wheelCircumferenceMm, 1) / 1000;
+  const cadence = Math.max(rider.minCadence, 30);
+
+  const speed = (cadence * ratio * circumferenceM) / 60;
+  return Math.max(speed, MIN_SPEED_FLOOR);
+}
+
+function computePowerRequirement(grade: number, speed: number, rider: UserSettings): number {
+  const mass = Math.max(rider.massKg, 40);
+  const normalizedGrade = Math.max(grade, 0);
+  const rollingResistance = DEFAULT_CRR * mass * G;
+  const gravityForce = mass * G * normalizedGrade;
+  const aeroForce = 0.5 * DEFAULT_AIR_DENSITY * DEFAULT_CDA * speed * speed;
+  const power = (rollingResistance + gravityForce) * speed + aeroForce * speed;
+  return Math.max(power, 0);
+}
+
+function computeClimbTime(distanceKm: number, speed: number): number {
+  const distanceMeters = Math.max(distanceKm, 0) * 1000;
+  if (speed <= 0) {
+    return 0;
   }
 
-  if (avgGradient >= 9 || distanceKm >= 5) {
+  return distanceMeters / speed;
+}
+
+function classifyDifficulty(ratio: number): SuitabilityLevel {
+  if (ratio <= 0.85) {
+    return 'Friendly';
+  }
+
+  if (ratio <= 1.05) {
     return 'Challenging';
   }
 
-  return 'Friendly';
+  return 'Brutal';
+}
+
+export function formatPower(power: number): string {
+  return `${formatInteger(Math.round(power))} W`;
+}
+
+export function formatDuration(seconds: number): string {
+  const totalSeconds = Math.round(seconds);
+  const minutes = Math.floor(totalSeconds / 60);
+  const remainder = totalSeconds % 60;
+
+  if (minutes <= 0) {
+    return `${totalSeconds}s`;
+  }
+
+  return `${minutes}m ${remainder.toString().padStart(2, '0')}s`;
+}
+
+export function formatSpeed(speed: number): string {
+  const kmh = speed * 3.6;
+  return `${formatNumber(kmh)} km/h`;
+}
+
+export function formatFtpRatio(ratio: number): string {
+  return `${formatNumber(ratio * 100)}% FTP`;
 }

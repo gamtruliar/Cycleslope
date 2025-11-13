@@ -1,86 +1,301 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import SuitabilityBadge from './SuitabilityBadge.svelte';
+  import type { SuitabilityLevel } from '../i18n';
   import { t } from '../i18n';
-  import { searchQuery } from '../lib/filters';
+  import {
+    distanceRange,
+    difficultyFilter,
+    gradientRange,
+    searchQuery,
+  } from '../lib/filters';
+  import {
+    filteredSlopes,
+    formatDistance,
+    formatElevation,
+    formatFtpRatio,
+    formatGradient,
+    formatPower,
+    formatDuration,
+    loadSlopes,
+    slopeError,
+    slopeLoadState,
+    slopes,
+  } from '../lib/slopes';
 
-  let query = '';
+  interface DifficultyOption {
+    level: SuitabilityLevel;
+    label: string;
+  }
+
+  const slopesCsvUrl = `${import.meta.env.BASE_URL}data/slopes.csv`;
+  const difficultyOrder: SuitabilityLevel[] = ['Friendly', 'Challenging', 'Brutal'];
+
+  onMount(() => {
+    loadSlopes().catch((error) => {
+      console.error('Failed to load slopes dataset', error);
+    });
+  });
 
   $: query = $searchQuery;
+  $: difficultyOptions = ($t.filters.difficultyOptions as DifficultyOption[]).sort(
+    (a, b) => difficultyOrder.indexOf(a.level) - difficultyOrder.indexOf(b.level),
+  );
+  $: activeDifficulties = new Set($difficultyFilter);
+  $: filtered = $filteredSlopes;
+  $: totalAvailable = $slopes.length;
+  $: showNoMatches =
+    $slopeLoadState === 'ready' &&
+    totalAvailable > 0 &&
+    (query.trim() || activeDifficulties.size > 0) &&
+    filtered.length === 0;
 
   const handleSearchInput = (event: Event) => {
     const target = event.currentTarget as HTMLInputElement;
     searchQuery.set(target.value);
   };
 
+  const handleDifficultyToggle = (level: SuitabilityLevel) => {
+    difficultyFilter.toggle(level);
+  };
+
+  const handleGradientMinInput = (event: Event) => {
+    const target = event.currentTarget as HTMLInputElement;
+    gradientRange.setMin(target.valueAsNumber);
+  };
+
+  const handleGradientMaxInput = (event: Event) => {
+    const target = event.currentTarget as HTMLInputElement;
+    gradientRange.setMax(target.valueAsNumber);
+  };
+
+  const handleDistanceMinInput = (event: Event) => {
+    const target = event.currentTarget as HTMLInputElement;
+    distanceRange.setMin(target.valueAsNumber);
+  };
+
+  const handleDistanceMaxInput = (event: Event) => {
+    const target = event.currentTarget as HTMLInputElement;
+    distanceRange.setMax(target.valueAsNumber);
+  };
+
   const clearSearch = () => {
     searchQuery.reset();
+  };
+
+  const resetFilters = () => {
+    searchQuery.reset();
+    difficultyFilter.clear();
+    gradientRange.reset();
+    distanceRange.reset();
+  };
+
+  const handleRetry = () => {
+    loadSlopes(true).catch((error) => {
+      console.error('Failed to reload slopes dataset', error);
+    });
   };
 </script>
 
 <section id="filters" class="filters glass">
   <header>
-    <p class="eyebrow">{$t.filters.eyebrow}</p>
-    <h2>{$t.filters.title}</h2>
+    <div>
+      <p class="eyebrow">{$t.filters.eyebrow}</p>
+      <h2>{$t.filters.title}</h2>
+    </div>
+    <div class="filters__actions">
+      <button type="button" class="reset" on:click={resetFilters}>{$t.filters.reset}</button>
+      <a class="download" href={slopesCsvUrl} download>{$t.slopes.cta}</a>
+    </div>
   </header>
-  <div class="filters__grid">
-    <div class="filter-group">
-      <label for="filter-search">{$t.filters.searchLabel}</label>
-      <div class="input-group">
-        <span>🔍</span>
-        <input
-          id="filter-search"
-          type="text"
-          placeholder={$t.filters.searchPlaceholder}
-          value={query}
-          on:input={handleSearchInput}
-        />
-        {#if query}
-          <button type="button" class="clear" on:click={clearSearch}>
-            {$t.filters.clearSearch}
-          </button>
+  <div class="filters__layout">
+    <div class="filters__controls">
+      <div class="filter-group">
+        <label for="filter-search">{$t.filters.searchLabel}</label>
+        <div class="input-group">
+          <span>🔍</span>
+          <input
+            id="filter-search"
+            type="text"
+            placeholder={$t.filters.searchPlaceholder}
+            value={query}
+            on:input={handleSearchInput}
+          />
+          {#if query}
+            <button type="button" class="clear" on:click={clearSearch}>
+              {$t.filters.clearSearch}
+            </button>
+          {/if}
+        </div>
+      </div>
+      <div class="filter-group">
+        <p class="field-label" id="difficulty-label">{$t.filters.difficultyLabel}</p>
+        <div class="pill-group" role="group" aria-labelledby="difficulty-label">
+          {#each difficultyOptions as option}
+            <button
+              type="button"
+              class:active={activeDifficulties.has(option.level)}
+              on:click={() => handleDifficultyToggle(option.level)}
+            >
+              {option.label}
+            </button>
+          {/each}
+        </div>
+      </div>
+      <div class="filter-group">
+        <p class="field-label">{$t.filters.gradientLabel}</p>
+        <div class="range-inputs">
+          <label>
+            <span>{$t.filters.gradientRange.min}</span>
+            <input
+              type="range"
+              min="0"
+              max="25"
+              step="0.5"
+              value={$gradientRange.min}
+              on:input={handleGradientMinInput}
+            />
+            <span class="value">{formatGradient($gradientRange.min)}</span>
+          </label>
+          <label>
+            <span>{$t.filters.gradientRange.max}</span>
+            <input
+              type="range"
+              min="0"
+              max="25"
+              step="0.5"
+              value={$gradientRange.max}
+              on:input={handleGradientMaxInput}
+            />
+            <span class="value">{formatGradient($gradientRange.max)}</span>
+          </label>
+        </div>
+      </div>
+      <div class="filter-group">
+        <p class="field-label">{$t.filters.distanceLabel}</p>
+        <div class="range-inputs">
+          <label>
+            <span>{$t.filters.distanceRange.min}</span>
+            <input
+              type="range"
+              min="0"
+              max="20"
+              step="0.5"
+              value={$distanceRange.min}
+              on:input={handleDistanceMinInput}
+            />
+            <span class="value">{formatDistance($distanceRange.min)}</span>
+          </label>
+          <label>
+            <span>{$t.filters.distanceRange.max}</span>
+            <input
+              type="range"
+              min="0"
+              max="20"
+              step="0.5"
+              value={$distanceRange.max}
+              on:input={handleDistanceMaxInput}
+            />
+            <span class="value">{formatDistance($distanceRange.max)}</span>
+          </label>
+        </div>
+      </div>
+      <p class="filters__note">{$t.filters.note}</p>
+    </div>
+    <div class="filters__results">
+      <div id="slopes" class="filters__anchor" aria-hidden="true"></div>
+      <div class="results__status">
+        {#if $slopeLoadState === 'loading'}
+          <span>{$t.slopes.loading}</span>
+        {:else if $slopeLoadState === 'error'}
+          <div>
+            <span>{$t.slopes.error}</span>
+            {#if $slopeError}
+              <span class="status__detail">{$slopeError}</span>
+            {/if}
+            <button type="button" class="retry" on:click={handleRetry}>{$t.slopes.retry}</button>
+          </div>
+        {:else if totalAvailable === 0}
+          <span>{$t.slopes.empty}</span>
+        {:else if showNoMatches}
+          <div>
+            <span>{$t.slopes.noMatches.replace('{query}', query.trim())}</span>
+            <button type="button" class="retry" on:click={resetFilters}>{$t.filters.reset}</button>
+          </div>
+        {:else}
+          <span>
+            {$t.slopes.summary
+              .replace('{visible}', String(filtered.length))
+              .replace('{total}', String(totalAvailable))}
+          </span>
         {/if}
       </div>
-    </div>
-    <div class="filter-group">
-      <p class="field-label" id="difficulty-label">{$t.filters.difficultyLabel}</p>
-      <div class="pill-group" role="group" aria-labelledby="difficulty-label">
-        {#each $t.filters.difficultyOptions as option, index}
-          <button class:active={index === 1}>{option}</button>
-        {/each}
-      </div>
-    </div>
-    <div class="filter-group">
-      <p class="field-label">{$t.filters.gradientLabel}</p>
-      <div class="range-preview">
-        <div class="range-track">
-          <div class="range-fill"></div>
-        </div>
-        <div class="range-values">
-          <span>{$t.filters.gradientMin}</span>
-          <span>{$t.filters.gradientMax}</span>
-        </div>
-      </div>
-    </div>
-    <div class="filter-group">
-      <p class="field-label">{$t.filters.distanceLabel}</p>
-      <div class="chip-row">
-        {#each $t.filters.distanceChips as chip}
-          <span class="chip">{chip.label} <strong>{chip.detail}</strong></span>
-        {/each}
-      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>{$t.slopes.columns.climb}</th>
+            <th>{$t.slopes.columns.district}</th>
+            <th>{$t.slopes.columns.distance}</th>
+            <th>{$t.slopes.columns.ascent}</th>
+            <th>{$t.slopes.columns.gradient}</th>
+            <th>{$t.slopes.columns.power}</th>
+            <th>{$t.slopes.columns.suitability}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {#if $slopeLoadState !== 'ready' || filtered.length === 0}
+            <tr class="placeholder-row">
+              <td colspan="7">
+                <p>{$t.slopes.placeholder}</p>
+              </td>
+            </tr>
+          {:else}
+            {#each filtered as row}
+              <tr>
+                <td>
+                  <strong>{row.name}</strong>
+                  <span class="caption">{$t.slopes.caption}</span>
+                </td>
+                <td>{row.location}</td>
+                <td>{formatDistance(row.distanceKm)}</td>
+                <td>{formatElevation(row.totalAscent)}</td>
+                <td>
+                  <div class="metric">
+                    <span>{formatGradient(row.avgGradient)}</span>
+                    <span class="metric__detail">{formatDuration(row.metrics.climbTimeSeconds)}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="metric">
+                    <span>{formatPower(row.metrics.averagePowerWatts)}</span>
+                    <span class="metric__detail">{formatFtpRatio(row.metrics.ftpRatio)}</span>
+                  </div>
+                  {#if row.burstWarning}
+                    <p class="burst">{$t.slopes.burstWarning}</p>
+                  {/if}
+                </td>
+                <td><SuitabilityBadge level={row.suitability} /></td>
+              </tr>
+            {/each}
+          {/if}
+        </tbody>
+      </table>
     </div>
   </div>
-  <p class="filters__note">{$t.filters.note}</p>
 </section>
 
 <style>
   .filters {
     margin: 3rem auto;
-    padding: 2.25rem 2.5rem;
+    padding: 2.5rem;
     border-radius: 20px;
-    background: rgba(15, 23, 42, 0.02);
   }
 
   header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
     margin-bottom: 2rem;
   }
 
@@ -97,9 +312,33 @@
     font-size: 1.65rem;
   }
 
-  .filters__grid {
+  .filters__actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filters__layout {
     display: grid;
-    gap: 1.75rem;
+    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+    gap: 2rem;
+  }
+
+  .filters__controls {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .filters__results {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .filters__anchor {
+    position: relative;
+    top: -4rem;
+    height: 0;
   }
 
   .filter-group {
@@ -112,10 +351,6 @@
     font-weight: 600;
   }
 
-  .field-label {
-    margin: 0;
-  }
-
   .input-group {
     display: flex;
     align-items: center;
@@ -126,7 +361,7 @@
     box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
   }
 
-  input {
+  input[type='text'] {
     border: none;
     flex: 1;
     background: transparent;
@@ -138,14 +373,22 @@
     color: #94a3b8;
   }
 
-  .clear {
+  .clear,
+  .reset,
+  .retry {
     border: none;
-    background: transparent;
-    color: #2563eb;
+    background: rgba(37, 99, 235, 0.12);
+    color: #1d4ed8;
     font-weight: 600;
     cursor: pointer;
     font-size: 0.85rem;
-    padding: 0.2rem 0;
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+  }
+
+  .reset {
+    background: rgba(15, 23, 42, 0.08);
+    color: #0f172a;
   }
 
   .pill-group {
@@ -161,6 +404,7 @@
     background: rgba(148, 163, 184, 0.2);
     color: #475569;
     cursor: pointer;
+    transition: background 0.2s ease;
   }
 
   .pill-group .active {
@@ -168,52 +412,151 @@
     color: #1d4ed8;
   }
 
-  .range-preview {
+  .range-inputs {
     display: grid;
-    gap: 0.6rem;
+    gap: 1rem;
   }
 
-  .range-track {
-    height: 8px;
-    border-radius: 999px;
-    background: rgba(148, 163, 184, 0.3);
-    overflow: hidden;
+  .range-inputs label {
+    display: grid;
+    gap: 0.5rem;
   }
 
-  .range-fill {
-    width: 65%;
-    height: 100%;
-    background: linear-gradient(135deg, #22d3ee, #2563eb);
+  input[type='range'] {
+    accent-color: #2563eb;
   }
 
-  .range-values {
+  .value {
+    font-size: 0.9rem;
+    color: #475569;
+  }
+
+  .filters__note {
+    font-size: 0.85rem;
+    color: #64748b;
+    line-height: 1.5;
+  }
+
+  .results__status {
+    background: rgba(37, 99, 235, 0.08);
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
     display: flex;
     justify-content: space-between;
-    color: #64748b;
-    font-size: 0.85rem;
-  }
-
-  .chip-row {
-    display: flex;
+    align-items: center;
     gap: 0.75rem;
     flex-wrap: wrap;
   }
 
-  .chip {
-    background: white;
-    border-radius: 999px;
-    padding: 0.45rem 1rem;
-    box-shadow: 0 6px 12px rgba(15, 23, 42, 0.08);
-    font-size: 0.85rem;
-  }
-
-  .chip strong {
-    margin-left: 0.25rem;
-  }
-
-  .filters__note {
-    margin: 2rem 0 0;
+  .status__detail {
+    display: block;
+    font-size: 0.8rem;
     color: #64748b;
-    font-size: 0.85rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 16px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.1);
+  }
+
+  th,
+  td {
+    text-align: left;
+    padding: 1rem 1.25rem;
+    vertical-align: top;
+  }
+
+  thead {
+    background: rgba(148, 163, 184, 0.15);
+    color: #1e293b;
+    font-size: 0.9rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  tbody tr:not(:last-child) {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  }
+
+  .metric {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .metric__detail {
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+
+  .burst {
+    margin: 0.35rem 0 0;
+    font-size: 0.75rem;
+    color: #b91c1c;
+    font-weight: 600;
+  }
+
+  .caption {
+    display: block;
+    color: #94a3b8;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+  }
+
+  .download {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: rgba(37, 99, 235, 0.15);
+    color: #1d4ed8;
+    padding: 0.6rem 1.2rem;
+    border-radius: 999px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .placeholder-row {
+    opacity: 0.65;
+  }
+
+  .placeholder-row p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #64748b;
+  }
+
+  @media (max-width: 1024px) {
+    .filters__layout {
+      grid-template-columns: 1fr;
+    }
+
+    .filters__anchor {
+      top: -3rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .filters__actions {
+      justify-content: flex-start;
+    }
+
+    table {
+      font-size: 0.9rem;
+    }
+
+    th,
+    td {
+      padding: 0.85rem 0.9rem;
+    }
   }
 </style>
