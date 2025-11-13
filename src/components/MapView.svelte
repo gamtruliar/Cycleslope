@@ -4,6 +4,7 @@
   import { loadPaths, pathError, pathLoadState, pathsByGroup } from '../lib/paths';
 
   const pinClasses = ['map__pin--one', 'map__pin--two', 'map__pin--three'];
+  const routeColors = ['#38bdf8', '#6366f1', '#f97316', '#22c55e', '#facc15', '#ec4899'];
 
   onMount(() => {
     loadPaths().catch((error) => {
@@ -17,11 +18,84 @@
     });
   };
 
-  $: groupCount = Object.keys($pathsByGroup).length;
-  $: pointCount = Object.values($pathsByGroup).reduce((total, points) => total + points.length, 0);
+  $: groupEntries = Object.entries($pathsByGroup);
+  $: groupCount = groupEntries.length;
+  $: pointCount = groupEntries.reduce((total, [, points]) => total + points.length, 0);
   $: summaryText = $t.map.dataset.summary
     .replace('{groups}', String(groupCount))
     .replace('{points}', String(pointCount));
+
+  $: bounds = computeBounds(groupEntries);
+  $: projectedRoutes = projectRoutes(groupEntries, bounds);
+
+  function computeBounds(entries: [string, { lat: number; lng: number }[]][]) {
+    if (!entries.length) {
+      return null;
+    }
+
+    let minLat = Number.POSITIVE_INFINITY;
+    let maxLat = Number.NEGATIVE_INFINITY;
+    let minLng = Number.POSITIVE_INFINITY;
+    let maxLng = Number.NEGATIVE_INFINITY;
+
+    entries.forEach(([, points]) => {
+      points.forEach((point) => {
+        minLat = Math.min(minLat, point.lat);
+        maxLat = Math.max(maxLat, point.lat);
+        minLng = Math.min(minLng, point.lng);
+        maxLng = Math.max(maxLng, point.lng);
+      });
+    });
+
+    if (!Number.isFinite(minLat) || !Number.isFinite(minLng)) {
+      return null;
+    }
+
+    return { minLat, maxLat, minLng, maxLng };
+  }
+
+  function projectRoutes(
+    entries: [string, { lat: number; lng: number }[]][],
+    bounds: { minLat: number; maxLat: number; minLng: number; maxLng: number } | null,
+  ) {
+    if (!bounds) {
+      return [];
+    }
+
+    const latRange = bounds.maxLat - bounds.minLat || 1;
+    const lngRange = bounds.maxLng - bounds.minLng || 1;
+
+    return entries
+      .map(([groupId, points], index) => {
+        if (points.length === 0) {
+          return null;
+        }
+
+        const projectedPoints = points.map((point) => ({
+          x: ((point.lng - bounds.minLng) / lngRange) * 100,
+          y: ((bounds.maxLat - point.lat) / latRange) * 100,
+        }));
+
+        const path = projectedPoints.map((point) => `${point.x},${point.y}`).join(' ');
+        const start = projectedPoints[0];
+        const end = projectedPoints[projectedPoints.length - 1];
+
+        return {
+          groupId,
+          color: routeColors[index % routeColors.length],
+          path,
+          start,
+          end,
+        };
+      })
+      .filter((value): value is {
+        groupId: string;
+        color: string;
+        path: string;
+        start: { x: number; y: number };
+        end: { x: number; y: number };
+      } => Boolean(value));
+  }
 </script>
 
 <section id="map" class="map glass">
@@ -30,14 +104,40 @@
     <h2>{$t.map.title}</h2>
   </header>
   <div class="map__canvas">
-    <div class="map__grid">
-      {#each $t.map.pins as pin, index}
-        <div class={`map__pin ${pinClasses[index] ?? ''}`}>
-          <span>📍</span>
-          <p>{pin}</p>
-        </div>
-      {/each}
-    </div>
+    {#if $pathLoadState === 'ready' && projectedRoutes.length > 0}
+      <svg class="map__preview" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" role="presentation">
+        <defs>
+          <radialGradient id="map-background" cx="50%" cy="50%" r="75%">
+            <stop offset="0%" stop-color="rgba(15, 23, 42, 0.1)" />
+            <stop offset="100%" stop-color="rgba(15, 23, 42, 0.4)" />
+          </radialGradient>
+        </defs>
+        <rect x="0" y="0" width="100" height="100" fill="url(#map-background)" rx="12" />
+        <g class="map__gridlines">
+          {#each Array.from({ length: 9 }) as _, index}
+            <line x1={(index + 1) * 10} x2={(index + 1) * 10} y1="0" y2="100" />
+            <line y1={(index + 1) * 10} y2={(index + 1) * 10} x1="0" x2="100" />
+          {/each}
+        </g>
+        {#each projectedRoutes as route}
+          <g class="map__route" style={`--route-color: ${route.color}`}>
+            <polyline points={route.path} />
+            <circle cx={route.start.x} cy={route.start.y} r="1.2" />
+            <circle cx={route.end.x} cy={route.end.y} r="1" class="map__route-end" />
+            <text x={route.end.x} y={Math.max(route.end.y - 2, 5)}>{route.groupId}</text>
+          </g>
+        {/each}
+      </svg>
+    {:else}
+      <div class="map__grid">
+        {#each $t.map.pins as pin, index}
+          <div class={`map__pin ${pinClasses[index] ?? ''}`}>
+            <span>📍</span>
+            <p>{pin}</p>
+          </div>
+        {/each}
+      </div>
+    {/if}
     <p class="map__caption">{$t.map.caption}</p>
     <div class="map__status">
       {#if $pathLoadState === 'loading'}
@@ -86,6 +186,13 @@
     overflow: hidden;
   }
 
+  .map__preview {
+    display: block;
+    width: 100%;
+    max-height: 320px;
+    border-radius: 14px;
+  }
+
   .map__grid {
     display: grid;
     place-items: center;
@@ -94,6 +201,40 @@
       linear-gradient(to bottom, rgba(255, 255, 255, 0.25) 1px, transparent 1px);
     background-size: 48px 48px;
     border-radius: 14px;
+  }
+
+  .map__gridlines line {
+    stroke: rgba(255, 255, 255, 0.12);
+    stroke-width: 0.3;
+  }
+
+  .map__route polyline {
+    fill: none;
+    stroke: var(--route-color);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    filter: drop-shadow(0 4px 8px rgba(15, 23, 42, 0.35));
+  }
+
+  .map__route circle {
+    fill: var(--route-color);
+    stroke: rgba(15, 23, 42, 0.6);
+    stroke-width: 0.4;
+  }
+
+  .map__route-end {
+    opacity: 0.85;
+  }
+
+  .map__route text {
+    fill: rgba(248, 250, 252, 0.9);
+    font-size: 4px;
+    font-weight: 600;
+    text-anchor: middle;
+    paint-order: stroke;
+    stroke: rgba(15, 23, 42, 0.65);
+    stroke-width: 0.6;
   }
 
   .map__pin {

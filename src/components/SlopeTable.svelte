@@ -11,6 +11,7 @@
     slopeLoadState,
     slopes,
   } from '../lib/slopes';
+  import { searchQuery } from '../lib/filters';
 
   const slopesCsvUrl = `${import.meta.env.BASE_URL}data/slopes.csv`;
 
@@ -19,6 +20,15 @@
       console.error('Failed to load slopes dataset', error);
     });
   });
+
+  $: normalizedQuery = $searchQuery.trim().toLowerCase();
+  $: filteredSlopes = normalizedQuery
+    ? $slopes.filter((row) =>
+        [row.name, row.location].some((value) => value.toLowerCase().includes(normalizedQuery)),
+      )
+    : $slopes;
+  $: showNoMatches =
+    $slopeLoadState === 'ready' && $slopes.length > 0 && normalizedQuery && filteredSlopes.length === 0;
 
   const handleRetry = () => {
     loadSlopes(true).catch((error) => {
@@ -66,8 +76,15 @@
         <tr>
           <td colspan="6" class="table-message">{$t.slopes.empty}</td>
         </tr>
+      {:else if showNoMatches}
+        <tr>
+          <td colspan="6" class="table-message">
+            {$t.slopes.noMatches.replace('{query}', $searchQuery.trim())}
+            <button class="retry" on:click={() => searchQuery.reset()}>{$t.slopes.clearSearch}</button>
+          </td>
+        </tr>
       {:else}
-        {#each $slopes as row}
+        {#each filteredSlopes as row}
           <tr>
             <td>
               <strong>{row.name}</strong>
@@ -186,6 +203,10 @@
     border-radius: 999px;
     font-weight: 600;
     cursor: pointer;
+  }
+
+  .table-message .retry {
+    margin-top: 0.5rem;
   }
 
   strong {

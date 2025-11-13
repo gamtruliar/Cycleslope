@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { t } from '../i18n';
-  import { settings, type UserSettings } from '../lib/settings';
+  import { savedProfiles, settings, type UserSettings } from '../lib/settings';
 
   const handleNumberInput = (key: keyof UserSettings) => (event: Event) => {
     const target = event.currentTarget as HTMLInputElement;
@@ -16,6 +17,80 @@
   const resetSettings = () => {
     settings.reset();
   };
+
+  let profileName = '';
+  let selectedProfileId = '';
+  let feedback: { type: 'success' | 'error'; text: string } | null = null;
+  let feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  const showFeedback = (type: 'success' | 'error', text: string) => {
+    feedback = { type, text };
+    if (feedbackTimeout) {
+      clearTimeout(feedbackTimeout);
+    }
+    feedbackTimeout = setTimeout(() => {
+      feedback = null;
+      feedbackTimeout = null;
+    }, 4000);
+  };
+
+  const handleSaveProfile = () => {
+    const trimmed = profileName.trim();
+    if (!trimmed) {
+      showFeedback('error', $t.profile.savedProfiles.nameRequired);
+      return;
+    }
+
+    try {
+      const saved = savedProfiles.saveProfile(trimmed, $settings);
+      profileName = '';
+      selectedProfileId = saved.id;
+      showFeedback('success', $t.profile.savedProfiles.saved.replace('{name}', saved.name));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      showFeedback('error', message);
+    }
+  };
+
+  const handleLoadProfile = () => {
+    if (!selectedProfileId) {
+      return;
+    }
+
+    const profile = $savedProfiles.find((item) => item.id === selectedProfileId);
+    if (!profile) {
+      showFeedback('error', $t.profile.savedProfiles.empty);
+      return;
+    }
+
+    settings.setAll(profile.settings);
+    showFeedback('success', $t.profile.savedProfiles.loaded.replace('{name}', profile.name));
+  };
+
+  const handleDeleteProfile = () => {
+    if (!selectedProfileId) {
+      return;
+    }
+
+    const profile = $savedProfiles.find((item) => item.id === selectedProfileId);
+    if (!profile) {
+      return;
+    }
+
+    savedProfiles.deleteProfile(selectedProfileId);
+    showFeedback('success', $t.profile.savedProfiles.deleted.replace('{name}', profile.name));
+    selectedProfileId = '';
+  };
+
+  $: if (selectedProfileId && !$savedProfiles.some((profile) => profile.id === selectedProfileId)) {
+    selectedProfileId = '';
+  }
+
+  onDestroy(() => {
+    if (feedbackTimeout) {
+      clearTimeout(feedbackTimeout);
+    }
+  });
 </script>
 
 <section id="profile" class="profile glass">
@@ -104,6 +179,60 @@
         <button type="button" on:click={resetSettings}>{$t.profile.callout.button}</button>
       </div>
     </div>
+    <div class="profile__saved">
+      <div class="profile__saved-header">
+        <h3>{$t.profile.savedProfiles.title}</h3>
+        <p>{$t.profile.savedProfiles.subtitle}</p>
+      </div>
+      <div class="profile__saved-grid">
+        <div class="profile__saved-column">
+          <label class="profile__field">
+            <span class="label">{$t.profile.savedProfiles.nameLabel}</span>
+            <div class="profile__saved-input-row">
+              <input
+                type="text"
+                placeholder={$t.profile.savedProfiles.namePlaceholder}
+                bind:value={profileName}
+              />
+              <button type="button" on:click={handleSaveProfile}>{$t.profile.savedProfiles.saveButton}</button>
+            </div>
+            <span class="helper">{$t.profile.savedProfiles.overwriteHint}</span>
+          </label>
+        </div>
+        <div class="profile__saved-column">
+          <label class="profile__field">
+            <span class="label">{$t.profile.savedProfiles.selectLabel}</span>
+            <select bind:value={selectedProfileId}>
+              <option value="">{$t.profile.savedProfiles.selectPlaceholder}</option>
+              {#each $savedProfiles as profile}
+                <option value={profile.id}>{profile.name}</option>
+              {/each}
+            </select>
+          </label>
+          <div class="profile__saved-actions">
+            <button type="button" on:click={handleLoadProfile} disabled={!selectedProfileId}>
+              {$t.profile.savedProfiles.loadButton}
+            </button>
+            <button
+              type="button"
+              class="danger"
+              on:click={handleDeleteProfile}
+              disabled={!selectedProfileId}
+            >
+              {$t.profile.savedProfiles.deleteButton}
+            </button>
+          </div>
+        </div>
+      </div>
+      {#if !$savedProfiles.length}
+        <p class="profile__saved-empty">{$t.profile.savedProfiles.empty}</p>
+      {/if}
+      {#if feedback}
+        <p class={`profile__saved-message profile__saved-message--${feedback.type}`} aria-live="polite">
+          {feedback.text}
+        </p>
+      {/if}
+    </div>
   </form>
 </section>
 
@@ -175,7 +304,23 @@
     font-size: 0.95rem;
   }
 
+  select {
+    margin-top: 0.35rem;
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    background: rgba(255, 255, 255, 0.92);
+    color: #0f172a;
+    font-size: 0.95rem;
+  }
+
   input:focus-visible {
+    outline: 2px solid rgba(37, 99, 235, 0.35);
+    outline-offset: 2px;
+  }
+
+  select:focus-visible {
     outline: 2px solid rgba(37, 99, 235, 0.35);
     outline-offset: 2px;
   }
@@ -204,5 +349,89 @@
     color: white;
     font-weight: 600;
     cursor: pointer;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .profile__saved {
+    margin-top: 2.5rem;
+    padding: 2rem;
+    border-radius: 18px;
+    background: rgba(15, 23, 42, 0.04);
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .profile__saved-header h3 {
+    margin: 0;
+  }
+
+  .profile__saved-header p {
+    margin: 0.5rem 0 0;
+    color: #475569;
+  }
+
+  .profile__saved-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
+  .profile__saved-column {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .profile__saved-input-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .profile__saved-input-row input {
+    flex: 1;
+  }
+
+  .profile__saved-input-row button {
+    margin: 0;
+  }
+
+  .profile__saved-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .profile__saved-actions button {
+    margin: 0;
+    padding: 0.55rem 1.3rem;
+  }
+
+  .profile__saved-actions .danger {
+    background: rgba(239, 68, 68, 0.12);
+    color: #dc2626;
+  }
+
+  .profile__saved-empty {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.9rem;
+  }
+
+  .profile__saved-message {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .profile__saved-message--success {
+    color: #16a34a;
+  }
+
+  .profile__saved-message--error {
+    color: #dc2626;
   }
 </style>
