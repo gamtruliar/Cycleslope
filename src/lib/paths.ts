@@ -1,4 +1,5 @@
-import { derived, writable, type Readable } from 'svelte/store';
+import { derived, get, writable, type Readable } from 'svelte/store';
+import { loadSlopes, slopes } from './slopes';
 
 export interface PathPoint {
   groupId: string;
@@ -15,6 +16,8 @@ const errorStore = writable<string | null>(null);
 
 let hasLoaded = false;
 let currentRequest: Promise<void> | null = null;
+
+const MAX_POINTS_PER_GROUP = 100;
 
 export const pathPoints: Readable<PathPoint[]> = {
   subscribe: pathPointsStore.subscribe,
@@ -47,7 +50,7 @@ export async function loadPaths(force = false): Promise<void> {
   loadStateStore.set('loading');
   errorStore.set(null);
 
-  const request = fetchCsv()
+  const request = fetchAllGroups()
     .then((points) => {
       pathPointsStore.set(points);
       loadStateStore.set('ready');
@@ -69,19 +72,45 @@ export async function loadPaths(force = false): Promise<void> {
   return request;
 }
 
-async function fetchCsv(): Promise<PathPoint[]> {
-  const response = await fetch(`${import.meta.env.BASE_URL}data/paths.csv`, {
+async function fetchAllGroups(): Promise<PathPoint[]> {
+  await loadSlopes();
+  const slopeRecords = get(slopes);
+  const groupIds = Array.from(
+    new Set(
+      slopeRecords
+        .map((record) => record.pathGroupId.trim())
+        .filter((groupId) => groupId.length > 0),
+    ),
+  );
+
+  if (groupIds.length === 0) {
+    return [];
+  }
+
+  const groupPoints = await Promise.all(
+    groupIds.map(async (groupId) => {
+      const points = await fetchGroup(groupId);
+      return simplifyPoints(points, MAX_POINTS_PER_GROUP);
+    }),
+  );
+
+  return groupPoints.flat();
+}
+
+async function fetchGroup(groupId: string): Promise<PathPoint[]> {
+  const response = await fetch(`${import.meta.env.BASE_URL}data/paths/${groupId}.csv`, {
     headers: {
       Accept: 'text/csv',
     },
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch paths dataset (status ${response.status})`);
+    throw new Error(`Failed to fetch path data for ${groupId} (status ${response.status})`);
   }
 
   const text = await response.text();
-  return parseCsv(text);
+  const points = parseCsv(text);
+  return points.filter((point) => point.groupId === groupId);
 }
 
 function parseCsv(csvText: string): PathPoint[] {
@@ -127,6 +156,28 @@ function parseCsv(csvText: string): PathPoint[] {
   });
 
   return records;
+}
+
+function simplifyPoints(points: PathPoint[], maxPoints: number): PathPoint[] {
+  if (maxPoints <= 0 || points.length <= maxPoints) {
+    return points;
+  }
+
+  if (maxPoints === 1) {
+    return [points[0]];
+  }
+
+  const step = (points.length - 1) / (maxPoints - 1);
+  const indices = new Set<number>();
+
+  for (let i = 0; i < maxPoints; i += 1) {
+    const index = Math.round(i * step);
+    indices.add(Math.min(points.length - 1, Math.max(0, index)));
+  }
+
+  return Array.from(indices)
+    .sort((a, b) => a - b)
+    .map((index) => points[index]);
 }
 
 function parseCsvLine(line: string): string[] {
