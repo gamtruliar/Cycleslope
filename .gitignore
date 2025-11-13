@@ -1,3 +1,5 @@
 node_modules/
 offline-packages/
 dist/
+tools/.idea
+.idea
