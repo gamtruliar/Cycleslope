@@ -8,6 +8,12 @@ export interface PathPoint {
   ele: number;
 }
 
+interface CsvPoint {
+  lat: number;
+  lng: number;
+  ele: number;
+}
+
 export type PathLoadState = 'idle' | 'loading' | 'ready' | 'error';
 
 const pathPointsStore = writable<PathPoint[]>([]);
@@ -110,10 +116,15 @@ async function fetchGroup(groupId: string): Promise<PathPoint[]> {
 
   const text = await response.text();
   const points = parseCsv(text);
-  return points.filter((point) => point.groupId === groupId);
+  return points.map((point) => ({
+    groupId,
+    lat: point.lat,
+    lng: point.lng,
+    ele: point.ele,
+  }));
 }
 
-function parseCsv(csvText: string): PathPoint[] {
+function parseCsv(csvText: string): CsvPoint[] {
   const trimmed = csvText.trim();
   if (!trimmed) {
     return [];
@@ -123,13 +134,13 @@ function parseCsv(csvText: string): PathPoint[] {
   const [headerLine, ...rowLines] = lines;
   const headers = parseCsvLine(headerLine).map((header) => header.trim().toLowerCase());
 
-  const requiredHeaders = ['groupid', 'lat', 'lng', 'ele'];
+  const requiredHeaders = ['lat', 'lng', 'ele'];
   const missingHeader = requiredHeaders.find((header) => !headers.includes(header));
   if (missingHeader) {
     throw new Error(`Missing required column: ${missingHeader}`);
   }
 
-  const records: PathPoint[] = [];
+  const records: CsvPoint[] = [];
 
   rowLines.forEach((line, index) => {
     const values = parseCsvLine(line);
@@ -138,17 +149,11 @@ function parseCsv(csvText: string): PathPoint[] {
     }
 
     const record = Object.fromEntries(headers.map((header, headerIndex) => [header, values[headerIndex]]));
-    const groupId = (record['groupid'] ?? '').trim();
     const lat = parseNumberField(record['lat'], 'lat', index + 2);
     const lng = parseNumberField(record['lng'], 'lng', index + 2);
     const ele = parseNumberField(record['ele'], 'ele', index + 2);
 
-    if (!groupId) {
-      throw new Error(`Row ${index + 2} is missing a value for groupId.`);
-    }
-
     records.push({
-      groupId,
       lat,
       lng,
       ele,
