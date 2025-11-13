@@ -1,7 +1,7 @@
 import { derived, writable, type Readable } from 'svelte/store';
 import type { SuitabilityLevel } from '../i18n';
 import { difficultyFilter, distanceRange, gradientRange, searchQuery } from './filters';
-import { settings, type UserSettings } from './settings';
+import { getTotalSystemMassKg, settings, type UserSettings } from './settings';
 
 export interface SlopeRecord {
   name: string;
@@ -313,7 +313,7 @@ function computeMinSpeed(rider: UserSettings): number {
 }
 
 function computePowerRequirement(grade: number, speed: number, rider: UserSettings): number {
-  const mass = Math.max(rider.massKg, 40);
+  const mass = Math.max(getTotalSystemMassKg(rider), 40);
   const normalizedGrade = Math.max(grade, 0);
   const rollingResistance = DEFAULT_CRR * mass * G;
   const gravityForce = mass * G * normalizedGrade;

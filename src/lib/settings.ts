@@ -2,7 +2,9 @@ import { writable, type Readable } from 'svelte/store';
 
 export interface UserSettings {
   ftp: number;
-  massKg: number;
+  riderWeightKg: number;
+  bikeWeightKg: number;
+  cargoWeightKg: number;
   frontChainringTeeth: number;
   rearSprocketTeeth: number;
   wheelCircumferenceMm: number;
@@ -18,12 +20,21 @@ export interface SavedProfile {
 
 export const defaultSettings: UserSettings = {
   ftp: 240,
-  massKg: 68,
+  riderWeightKg: 60,
+  bikeWeightKg: 9,
+  cargoWeightKg: 3,
   frontChainringTeeth: 34,
   rearSprocketTeeth: 32,
   wheelCircumferenceMm: 2096,
   minCadence: 70,
 };
+
+export function getTotalSystemMassKg(settings: UserSettings): number {
+  const rider = Math.max(settings.riderWeightKg, 0);
+  const bike = Math.max(settings.bikeWeightKg, 0);
+  const cargo = Math.max(settings.cargoWeightKg, 0);
+  return rider + bike + cargo;
+}
 
 const STORAGE_KEY = 'cycleslope:settings';
 const PROFILES_STORAGE_KEY = 'cycleslope:profiles';
@@ -48,9 +59,29 @@ function toNumber(candidate: unknown, fallback: number): number {
 }
 
 function normalizeSettings(value: Partial<UserSettings> | null | undefined): UserSettings {
+  const legacyMass = toNumber(
+    (value as Partial<UserSettings> & { massKg?: unknown })?.massKg,
+    defaultSettings.riderWeightKg + defaultSettings.bikeWeightKg + defaultSettings.cargoWeightKg,
+  );
+  const hasNewWeights =
+    value?.riderWeightKg !== undefined ||
+    value?.bikeWeightKg !== undefined ||
+    value?.cargoWeightKg !== undefined;
+
+  let riderWeightKg = toNumber(value?.riderWeightKg, defaultSettings.riderWeightKg);
+  const bikeWeightKg = toNumber(value?.bikeWeightKg, defaultSettings.bikeWeightKg);
+  const cargoWeightKg = toNumber(value?.cargoWeightKg, defaultSettings.cargoWeightKg);
+
+  if (!hasNewWeights && (value as Partial<UserSettings> & { massKg?: unknown })?.massKg !== undefined) {
+    const inferredRider = legacyMass - bikeWeightKg - cargoWeightKg;
+    riderWeightKg = Math.max(inferredRider, defaultSettings.riderWeightKg);
+  }
+
   return {
     ftp: toNumber(value?.ftp, defaultSettings.ftp),
-    massKg: toNumber(value?.massKg, defaultSettings.massKg),
+    riderWeightKg,
+    bikeWeightKg,
+    cargoWeightKg,
     frontChainringTeeth: toNumber(value?.frontChainringTeeth, defaultSettings.frontChainringTeeth),
     rearSprocketTeeth: toNumber(value?.rearSprocketTeeth, defaultSettings.rearSprocketTeeth),
     wheelCircumferenceMm: toNumber(value?.wheelCircumferenceMm, defaultSettings.wheelCircumferenceMm),
@@ -61,7 +92,9 @@ function normalizeSettings(value: Partial<UserSettings> | null | undefined): Use
 function cloneSettings(value: UserSettings): UserSettings {
   return {
     ftp: value.ftp,
-    massKg: value.massKg,
+    riderWeightKg: value.riderWeightKg,
+    bikeWeightKg: value.bikeWeightKg,
+    cargoWeightKg: value.cargoWeightKg,
     frontChainringTeeth: value.frontChainringTeeth,
     rearSprocketTeeth: value.rearSprocketTeeth,
     wheelCircumferenceMm: value.wheelCircumferenceMm,
