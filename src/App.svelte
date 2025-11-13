@@ -3,7 +3,6 @@
   import HeroSection from './components/HeroSection.svelte';
   import Filters from './components/Filters.svelte';
   import UserProfile from './components/UserProfile.svelte';
-  import SlopeTable from './components/SlopeTable.svelte';
   import MapView from './components/MapView.svelte';
   import { t } from './i18n';
 </script>
@@ -13,7 +12,6 @@
   <HeroSection />
   <UserProfile />
   <Filters />
-  <SlopeTable />
   <MapView />
 </main>
 <footer>
