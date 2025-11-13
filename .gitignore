@@ -1,3 +1,5 @@
 node_modules/
 offline-packages/
 dist/
+# Vite build output uploaded by GitHub Pages workflow
+docs/
