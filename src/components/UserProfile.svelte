@@ -1,7 +1,20 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import { t } from '../i18n';
-  import { savedProfiles, settings, type UserSettings } from '../lib/settings';
+  import {
+    getTotalSystemMassKg,
+    savedProfiles,
+    settings,
+    type UserSettings,
+  } from '../lib/settings';
+
+  const wheelCircumferenceOptions = [
+    { value: 2070, label: '700×23c · 2070 mm' },
+    { value: 2096, label: '700×25c · 2096 mm' },
+    { value: 2105, label: '700×28c · 2105 mm' },
+    { value: 2148, label: '29″×2.2 · 2148 mm' },
+    { value: 1995, label: '650b×47 · 1995 mm' },
+  ];
 
   const handleNumberInput = (key: keyof UserSettings) => (event: Event) => {
     const target = event.currentTarget as HTMLInputElement;
@@ -22,6 +35,9 @@
   let selectedProfileId = '';
   let feedback: { type: 'success' | 'error'; text: string } | null = null;
   let feedbackTimeout: ReturnType<typeof setTimeout> | null = null;
+  let wheelSelection = 'custom';
+  let totalMassKg = 0;
+  let formattedTotalMass = '';
 
   const showFeedback = (type: 'success' | 'error', text: string) => {
     feedback = { type, text };
@@ -82,6 +98,31 @@
     selectedProfileId = '';
   };
 
+  $: totalMassKg = getTotalSystemMassKg($settings);
+  $: formattedTotalMass = formatMass(totalMassKg);
+  $: wheelSelection = wheelCircumferenceOptions.some(
+    (option) => option.value === $settings.wheelCircumferenceMm,
+  )
+    ? String($settings.wheelCircumferenceMm)
+    : 'custom';
+
+  const handleWheelSelect = (event: Event) => {
+    const target = event.currentTarget as HTMLSelectElement;
+    if (target.value === 'custom') {
+      return;
+    }
+
+    const parsed = Number(target.value);
+    if (Number.isFinite(parsed)) {
+      settings.updateSetting('wheelCircumferenceMm', parsed);
+    }
+  };
+
+  function formatMass(value: number): string {
+    const rounded = Math.round(value * 10) / 10;
+    return rounded.toFixed(1).replace(/\.0$/, '');
+  }
+
   $: if (selectedProfileId && !$savedProfiles.some((profile) => profile.id === selectedProfileId)) {
     selectedProfileId = '';
   }
@@ -126,15 +167,65 @@
         </label>
         <label class="profile__field">
           <span class="label">{$t.profile.form.wheelCircumference}</span>
+          <div class="wheel-input">
+            <select bind:value={wheelSelection} on:change={handleWheelSelect}>
+              {#each wheelCircumferenceOptions as option}
+                <option value={String(option.value)}>{option.label}</option>
+              {/each}
+              <option value="custom">{$t.profile.form.wheelCircumferenceCustom}</option>
+            </select>
+            <input
+              type="number"
+              min="1800"
+              max="2500"
+              step="1"
+              value={$settings.wheelCircumferenceMm}
+              on:change={handleNumberInput('wheelCircumferenceMm')}
+            />
+          </div>
+          <span class="helper">{$t.profile.form.wheelCircumferenceHelper}</span>
+        </label>
+      </div>
+      <div class="profile__card">
+        <h3>{$t.profile.rider.title}</h3>
+        <p class="helper">{$t.profile.rider.helper}</p>
+        <label class="profile__field">
+          <span class="label">{$t.profile.form.riderWeight}</span>
           <input
             type="number"
-            min="1800"
-            max="2500"
-            step="1"
-            value={$settings.wheelCircumferenceMm}
-            on:change={handleNumberInput('wheelCircumferenceMm')}
+            min="30"
+            max="120"
+            step="0.5"
+            value={$settings.riderWeightKg}
+            on:change={handleNumberInput('riderWeightKg')}
           />
         </label>
+        <label class="profile__field">
+          <span class="label">{$t.profile.form.bikeWeight}</span>
+          <input
+            type="number"
+            min="5"
+            max="25"
+            step="0.1"
+            value={$settings.bikeWeightKg}
+            on:change={handleNumberInput('bikeWeightKg')}
+          />
+        </label>
+        <label class="profile__field">
+          <span class="label">{$t.profile.form.cargoWeight}</span>
+          <input
+            type="number"
+            min="0"
+            max="25"
+            step="0.1"
+            value={$settings.cargoWeightKg}
+            on:change={handleNumberInput('cargoWeightKg')}
+          />
+        </label>
+        <div class="profile__total-mass">
+          <span>{$t.profile.rider.totalMass}</span>
+          <strong>{formattedTotalMass} kg</strong>
+        </div>
       </div>
       <div class="profile__card">
         <h3>{$t.profile.power.title}</h3>
@@ -150,17 +241,6 @@
           />
         </label>
         <label class="profile__field">
-          <span class="label">{$t.profile.form.mass}</span>
-          <input
-            type="number"
-            min="40"
-            max="120"
-            step="0.5"
-            value={$settings.massKg}
-            on:change={handleNumberInput('massKg')}
-          />
-        </label>
-        <label class="profile__field">
           <span class="label">{$t.profile.form.minCadence}</span>
           <input
             type="number"
@@ -171,12 +251,10 @@
             on:change={handleNumberInput('minCadence')}
           />
         </label>
-      </div>
-      <div class="profile__callout">
-        <h3>{$t.profile.callout.title}</h3>
-        <p>{$t.profile.callout.body}</p>
-        <p class="helper">{$t.profile.form.helper}</p>
-        <button type="button" on:click={resetSettings}>{$t.profile.callout.button}</button>
+        <div class="profile__reset">
+          <p class="helper">{$t.profile.form.helper}</p>
+          <button type="button" on:click={resetSettings}>{$t.profile.reset}</button>
+        </div>
       </div>
     </div>
     <div class="profile__saved">
@@ -325,19 +403,36 @@
     outline-offset: 2px;
   }
 
-  .profile__callout {
-    padding: 2rem;
-    border-radius: 18px;
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(14, 165, 233, 0.18));
-    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.2);
-    display: grid;
-    gap: 1.1rem;
-  }
-
   .helper {
     margin: 0;
     color: #1d4ed8;
     font-size: 0.85rem;
+  }
+
+  .wheel-input {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .profile__total-mass {
+    margin-top: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    background: rgba(37, 99, 235, 0.08);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    font-size: 0.95rem;
+  }
+
+  .profile__total-mass strong {
+    font-size: 1.1rem;
+    color: #0f172a;
+  }
+
+  .profile__reset {
+    display: grid;
+    gap: 0.75rem;
   }
 
   button {

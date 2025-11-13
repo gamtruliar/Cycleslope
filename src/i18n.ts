@@ -7,38 +7,26 @@ const translations = {
   'zh-Hant': {
     topBar: {
       brandTitle: '香港單車爬坡',
-      brandSubtitle: '介面原型',
+      brandSubtitle: '坡度配速工具',
       nav: {
         filters: '篩選',
         profile: '你的設定',
         slopes: '爬坡列表',
         map: '地圖',
       },
-      cta: '訂閱更新',
+      cta: '在 GitHub 參與',
       languageSwitcherLabel: '介面語言',
     },
     hero: {
-      eyebrow: '香港單車爬坡資訊站',
-      title: '自信規劃下一段爬坡。',
+      eyebrow: '香港單車爬坡工具',
+      title: '根據你的設定即時計算坡度需求。',
       lead:
-        '探索坡度、比較變速組合，並視覺化香港經典爬坡。此靜態原型展示預期版面，數據串接仍在進行中。',
-      actions: {
-        primary: '瀏覽示例爬坡',
-        secondary: '觀看概覽',
-      },
-      stats: {
-        climbs: '經典路段',
-        gradient: '最陡坡度',
-        feedback: '車手評分',
-      },
-      card: {
-        badge: '焦點爬坡',
-        title: '大帽山通道',
-        distanceLabel: '距離',
-        gradientLabel: '平均坡度',
-        timeLabel: '預估時間',
-        note: '正式版本將會在此顯示即時數據與計算。',
-      },
+        '輸入車手、單車與裝備重量，加上功率輸出，就能掌握香港經典爬坡的平均與最大坡度負荷。',
+      highlights: [
+        '比較平均與最大坡度並查看功率需求',
+        '估算完成時間與 FTP 比率',
+        '匯出 CSV 以便行程規劃',
+      ],
     },
     filters: {
       eyebrow: '篩選',
@@ -71,6 +59,11 @@ const translations = {
       bike: {
         title: '車款與傳動',
       },
+      rider: {
+        title: '重量分佈',
+        helper: '分拆出車手、單車與隨身裝備的重量以計算總質量。',
+        totalMass: '目前總重量',
+      },
       power: {
         title: '功率概況',
       },
@@ -78,16 +71,16 @@ const translations = {
         frontChainring: '最細前齒盤 (T)',
         rearSprocket: '最大飛輪 (T)',
         wheelCircumference: '輪圈周長 (毫米)',
+        wheelCircumferenceCustom: '自訂數值',
+        wheelCircumferenceHelper: '常見尺寸已列於選單，你亦可輸入自訂數值覆蓋。',
         ftp: 'FTP (瓦特)',
-        mass: '總重 (公斤)',
+        riderWeight: '車手體重 (公斤)',
+        bikeWeight: '單車重量 (公斤)',
+        cargoWeight: '裝備重量 (公斤)',
         minCadence: '最低踏頻 (rpm)',
         helper: '設定會自動儲存在本機瀏覽器，稍後的適配計算會沿用這些數值。',
       },
-      callout: {
-        title: '下一步？',
-        body: '這些欄位會連接到即將推出的功率與齒比分析工具。',
-        button: '重設為預設值',
-      },
+      reset: '重設為預設值',
       savedProfiles: {
         title: '儲存的設定檔',
         subtitle: '為不同裝備或車手狀態建立多個設定檔並快速切換。',
@@ -118,6 +111,10 @@ const translations = {
         gradient: '平均坡度',
         power: '功率需求',
         suitability: '適合程度',
+      },
+      labels: {
+        maxGradient: '最大坡度 {value}',
+        estimatedTime: '預估時間',
       },
       caption: '精選爬坡',
       footer: '所有指標均基於左側篩選及個人輸入設定。',
@@ -167,12 +164,18 @@ const translations = {
       },
     },
     footer: {
-      message: '原型版本 • 數據整合即將推出。',
+      message: '本地運行 • 設定僅儲存在你的裝置。',
       links: {
         github: 'GitHub',
         contact: '聯絡我們',
         privacy: '私隱政策',
       },
+    },
+    privacy: {
+      title: '私隱政策',
+      body:
+        'Cycleslope 完全在你的瀏覽器內運行，所有設定與計算均儲存在本機，不會傳送到任何伺服器。清除瀏覽器資料即可刪除相關紀錄。',
+      close: '知道了',
     },
     suitability: {
       Friendly: '友善',
@@ -183,38 +186,26 @@ const translations = {
   en: {
     topBar: {
       brandTitle: 'HK Cycling Slopes',
-      brandSubtitle: 'Interface Prototype',
+      brandSubtitle: 'Climb planning tools',
       nav: {
         filters: 'Filters',
         profile: 'Your Setup',
         slopes: 'Climbs',
         map: 'Map',
       },
-      cta: 'Subscribe for updates',
+      cta: 'View on GitHub',
       languageSwitcherLabel: 'Interface language',
     },
     hero: {
-      eyebrow: 'Hong Kong Cycling Slopes Info Hub',
-      title: 'Plan your next climb with confidence.',
+      eyebrow: 'Hong Kong climb calculator',
+      title: 'Measure what each ascent demands from your setup.',
       lead:
-        'Explore gradients, compare gearing options, and visualise signature Hong Kong ascents. This static prototype outlines the intended layout while data wiring is still in progress.',
-      actions: {
-        primary: 'Explore sample climbs',
-        secondary: 'Watch overview',
-      },
-      stats: {
-        climbs: 'iconic climbs',
-        gradient: 'steepest gradient',
-        feedback: 'rider feedback',
-      },
-      card: {
-        badge: 'Climb spotlight',
-        title: 'Tai Mo Shan Access Road',
-        distanceLabel: 'Distance',
-        gradientLabel: 'Avg gradient',
-        timeLabel: 'Est. time',
-        note: 'Live data and calculations will appear here in the full build.',
-      },
+        'Feed in rider, bike, and cargo weight plus your power profile to estimate how Hong Kong’s classic climbs will feel under real gradients.',
+      highlights: [
+        'Compare average and max gradients against your gearing',
+        'Forecast ride time and FTP ratios instantly',
+        'Export a CSV for route planning or sharing',
+      ],
     },
     filters: {
       eyebrow: 'Filters',
@@ -247,6 +238,11 @@ const translations = {
       bike: {
         title: 'Bike & drivetrain',
       },
+      rider: {
+        title: 'Weight breakdown',
+        helper: 'Separate rider, bike, and cargo weight so the total mass stays accurate.',
+        totalMass: 'Total system mass',
+      },
       power: {
         title: 'Power profile',
       },
@@ -254,16 +250,16 @@ const translations = {
         frontChainring: 'Smallest chainring (T)',
         rearSprocket: 'Largest sprocket (T)',
         wheelCircumference: 'Wheel circumference (mm)',
+        wheelCircumferenceCustom: 'Custom value',
+        wheelCircumferenceHelper: 'Pick a common size or enter the exact circumference you measured.',
         ftp: 'FTP (W)',
-        mass: 'Total mass (kg)',
+        riderWeight: 'Rider weight (kg)',
+        bikeWeight: 'Bike weight (kg)',
+        cargoWeight: 'Cargo weight (kg)',
         minCadence: 'Min cadence (rpm)',
         helper: 'Your selections are stored in this browser and will feed upcoming suitability calculations.',
       },
-      callout: {
-        title: "What's next?",
-        body: 'These inputs will connect directly to the upcoming power and gearing tools.',
-        button: 'Restore defaults',
-      },
+      reset: 'Restore defaults',
       savedProfiles: {
         title: 'Saved profiles',
         subtitle: 'Capture multiple setups for quick swapping between riders or bikes.',
@@ -294,6 +290,10 @@ const translations = {
         gradient: 'Avg. gradient',
         power: 'Power demand',
         suitability: 'Suitability',
+      },
+      labels: {
+        maxGradient: 'Max gradient {value}',
+        estimatedTime: 'Estimated time',
       },
       caption: 'Featured climb',
       footer: 'Metrics respond instantly to the filters and rider inputs.',
@@ -343,12 +343,18 @@ const translations = {
       },
     },
     footer: {
-      message: 'Prototype build • Data integration coming soon.',
+      message: 'Runs locally • Settings stay on this device.',
       links: {
         github: 'GitHub',
         contact: 'Contact',
         privacy: 'Privacy',
       },
+    },
+    privacy: {
+      title: 'Privacy notice',
+      body:
+        'Cycleslope runs entirely in your browser. Rider settings and calculations stay local and are never uploaded. Clear your browser data to remove them.',
+      close: 'Got it',
     },
     suitability: {
       Friendly: 'Friendly',

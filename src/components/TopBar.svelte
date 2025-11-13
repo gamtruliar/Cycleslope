@@ -20,7 +20,14 @@
     </nav>
     <div class="topbar__actions">
       <LanguageSwitcher />
-      <button class="cta">{$t.topBar.cta}</button>
+      <a
+        class="cta"
+        href="https://github.com/gamtruliar/Cycleslope"
+        target="_blank"
+        rel="noreferrer"
+      >
+        {$t.topBar.cta}
+      </a>
     </div>
   </div>
 </header>
@@ -90,6 +97,10 @@
     font-weight: 600;
     box-shadow: 0 10px 20px rgba(37, 99, 235, 0.25);
     cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 
   @media (max-width: 768px) {

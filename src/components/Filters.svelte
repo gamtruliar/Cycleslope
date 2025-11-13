@@ -230,56 +230,74 @@
           </span>
         {/if}
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>{$t.slopes.columns.climb}</th>
-            <th>{$t.slopes.columns.district}</th>
-            <th>{$t.slopes.columns.distance}</th>
-            <th>{$t.slopes.columns.ascent}</th>
-            <th>{$t.slopes.columns.gradient}</th>
-            <th>{$t.slopes.columns.power}</th>
-            <th>{$t.slopes.columns.suitability}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#if $slopeLoadState !== 'ready' || filtered.length === 0}
-            <tr class="placeholder-row">
-              <td colspan="7">
-                <p>{$t.slopes.placeholder}</p>
-              </td>
-            </tr>
-          {:else}
-            {#each filtered as row}
-              <tr>
-                <td>
-                  <strong>{row.name}</strong>
-                  <span class="caption">{$t.slopes.caption}</span>
-                </td>
-                <td>{row.location}</td>
-                <td>{formatDistance(row.distanceKm)}</td>
-                <td>{formatElevation(row.totalAscent)}</td>
-                <td>
-                  <div class="metric">
-                    <span>{formatGradient(row.avgGradient)}</span>
-                    <span class="metric__detail">{formatDuration(row.metrics.climbTimeSeconds)}</span>
-                  </div>
-                </td>
-                <td>
-                  <div class="metric">
-                    <span>{formatPower(row.metrics.averagePowerWatts)}</span>
-                    <span class="metric__detail">{formatFtpRatio(row.metrics.ftpRatio)}</span>
-                  </div>
-                  {#if row.burstWarning}
-                    <p class="burst">{$t.slopes.burstWarning}</p>
-                  {/if}
-                </td>
-                <td><SuitabilityBadge level={row.suitability} /></td>
-              </tr>
-            {/each}
+      {#if $slopeLoadState === 'error'}
+        <div class="slope-placeholder">
+          <p>{$t.slopes.error}</p>
+          {#if $slopeError}
+            <span class="status__detail">{$slopeError}</span>
           {/if}
-        </tbody>
-      </table>
+          <button type="button" class="retry" on:click={handleRetry}>{$t.slopes.retry}</button>
+        </div>
+      {:else if $slopeLoadState !== 'ready'}
+        <div class="slope-placeholder">
+          <p>{$t.slopes.placeholder}</p>
+        </div>
+      {:else if filtered.length === 0}
+        <div class="slope-placeholder">
+          <p>
+            {#if showNoMatches}
+              {$t.slopes.noMatches.replace('{query}', query.trim())}
+            {:else}
+              {$t.slopes.empty}
+            {/if}
+          </p>
+          {#if showNoMatches}
+            <button type="button" class="retry" on:click={resetFilters}>{$t.filters.reset}</button>
+          {/if}
+        </div>
+      {:else}
+        <ul class="slope-list">
+          {#each filtered as row}
+            <li class="slope-card">
+              <div class="slope-card__header">
+                <div>
+                  <p class="caption">{$t.slopes.caption}</p>
+                  <h3>{row.name}</h3>
+                  <p class="location">
+                    {row.location} · {$t.slopes.columns.ascent}: {formatElevation(row.totalAscent)}
+                  </p>
+                </div>
+                <SuitabilityBadge level={row.suitability} />
+              </div>
+              <div class="slope-card__metrics">
+                <div class="metric">
+                  <span class="metric__label">{$t.slopes.columns.distance}</span>
+                  <span class="metric__value">{formatDistance(row.distanceKm)}</span>
+                </div>
+                <div class="metric">
+                  <span class="metric__label">{$t.slopes.columns.gradient}</span>
+                  <span class="metric__value">{formatGradient(row.avgGradient)}</span>
+                  <span class="metric__detail">
+                    {$t.slopes.labels.maxGradient.replace('{value}', formatGradient(row.maxGradient))}
+                  </span>
+                </div>
+                <div class="metric">
+                  <span class="metric__label">{$t.slopes.labels.estimatedTime}</span>
+                  <span class="metric__value">{formatDuration(row.metrics.climbTimeSeconds)}</span>
+                </div>
+                <div class="metric">
+                  <span class="metric__label">{$t.slopes.columns.power}</span>
+                  <span class="metric__value">{formatPower(row.metrics.averagePowerWatts)}</span>
+                  <span class="metric__detail">{formatFtpRatio(row.metrics.ftpRatio)}</span>
+                </div>
+              </div>
+              {#if row.burstWarning}
+                <p class="burst">{$t.slopes.burstWarning}</p>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+      {/if}
     </div>
   </div>
 </section>
@@ -454,56 +472,97 @@
     color: #64748b;
   }
 
-  table {
+  .slope-placeholder {
     width: 100%;
-    border-collapse: collapse;
+    padding: 2rem;
     border-radius: 16px;
-    overflow: hidden;
+    background: rgba(15, 23, 42, 0.05);
+    text-align: center;
+    color: #475569;
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .slope-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .slope-card {
+    display: grid;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-radius: 18px;
     background: white;
-    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.1);
+    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
   }
 
-  th,
-  td {
-    text-align: left;
-    padding: 1rem 1.25rem;
-    vertical-align: top;
+  .slope-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
   }
 
-  thead {
-    background: rgba(148, 163, 184, 0.15);
-    color: #1e293b;
-    font-size: 0.9rem;
-    letter-spacing: 0.03em;
+  .slope-card__header h3 {
+    margin: 0.2rem 0 0.35rem;
+    font-size: 1.2rem;
+  }
+
+  .caption {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 0.8rem;
     text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
 
-  tbody tr:not(:last-child) {
-    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  .location {
+    margin: 0;
+    color: #475569;
+    font-size: 0.9rem;
+  }
+
+  .slope-card__metrics {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
 
   .metric {
-    display: grid;
-    gap: 0.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.75rem;
+    border-radius: 12px;
+    background: rgba(148, 163, 184, 0.12);
+  }
+
+  .metric__label {
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+  .metric__value {
+    font-weight: 600;
+    color: #0f172a;
   }
 
   .metric__detail {
     font-size: 0.8rem;
-    color: #64748b;
+    color: #475569;
   }
 
   .burst {
-    margin: 0.35rem 0 0;
-    font-size: 0.75rem;
+    margin: 0;
+    font-size: 0.8rem;
     color: #b91c1c;
     font-weight: 600;
-  }
-
-  .caption {
-    display: block;
-    color: #94a3b8;
-    font-size: 0.8rem;
-    margin-top: 0.25rem;
   }
 
   .download {
@@ -518,16 +577,6 @@
     font-weight: 600;
     cursor: pointer;
     text-decoration: none;
-  }
-
-  .placeholder-row {
-    opacity: 0.65;
-  }
-
-  .placeholder-row p {
-    margin: 0;
-    font-size: 0.9rem;
-    color: #64748b;
   }
 
   @media (max-width: 1024px) {
@@ -548,15 +597,6 @@
 
     .filters__actions {
       justify-content: flex-start;
-    }
-
-    table {
-      font-size: 0.9rem;
-    }
-
-    th,
-    td {
-      padding: 0.85rem 0.9rem;
     }
   }
 </style>
