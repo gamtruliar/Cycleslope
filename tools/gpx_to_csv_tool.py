@@ -128,11 +128,13 @@ def compute_statistics(points: List[TrackPoint], smoothing_points: int = 1, min_
     total_climb = 0.0
     max_grade = 0.0
     gradient_distances = {threshold: 0.0 for threshold in GRADIENT_THRESHOLDS}
-    for prev, curr in zip(pts, pts[1:]):
+    prev=pts[0]
+    for curr in pts[1:]:
         horiz_distance = haversine_distance(prev.latitude, prev.longitude, curr.latitude, curr.longitude)
         elevation_change = curr.elevation - prev.elevation
         if horiz_distance <= 0 or horiz_distance < min_seg_m:
             continue
+        prev=curr
         grade = (elevation_change / horiz_distance) * 100
         max_grade = max(max_grade, grade)
         if elevation_change > 0:
@@ -167,7 +169,7 @@ def write_slopes_csv(output_dir: str, stats: SlopeStats) -> str:
             f"{stats.avg_gradient:.2f}",
             f"{stats.max_gradient:.2f}",
         ]
-        row.extend([f"{stats.gradient_distances_km[threshold]:.2f}" for threshold in GRADIENT_THRESHOLDS])
+        row.extend([f"{stats.gradient_distances_km[threshold]:.3f}" for threshold in GRADIENT_THRESHOLDS])
         writer.writerow(row)
     return file_path
 def write_paths_csv(output_dir: str, points: List[TrackPoint]) -> str:
@@ -505,7 +507,7 @@ class GPXConverterGUI:
         smoothing_points = max(1, smoothing_points)
         if self.reverse_points_var.get():
             selected_points = list(reversed(selected_points))
-        stats = compute_statistics(selected_points, smoothing_points=smoothing_points, min_seg_m=1.0)
+        stats = compute_statistics(selected_points, smoothing_points=smoothing_points, min_seg_m=2.0)
         slopes_path = write_slopes_csv(output_dir, stats)
         paths_path = write_paths_csv(output_dir, selected_points)
         messagebox.showinfo(
