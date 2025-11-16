@@ -23,10 +23,16 @@
     });
   });
 
-  $: gradientEntries = GRADIENT_THRESHOLDS.map((threshold) => ({
-    threshold,
-    distance: slope.gradientDistances[threshold] ?? 0,
-  })).filter((entry) => entry.distance > 0.01);
+  $: gradientEntries = GRADIENT_THRESHOLDS.map((threshold, index) => {
+    const distance = slope.gradientDistances[threshold] ?? 0;
+    const nextThreshold = GRADIENT_THRESHOLDS[index + 1];
+
+    return {
+      threshold,
+      distance,
+      label: nextThreshold ? `${threshold}%-${nextThreshold}%` : `>${threshold}%`,
+    };
+  }).filter((entry) => entry.distance > 0.01);
 
   $: tagLabels = slope.difficultyTags;
 
@@ -183,7 +189,7 @@
       <div class="chip-row">
         {#if gradientEntries.length > 0}
           {#each gradientEntries as entry}
-            <span class="chip">&gt;{entry.threshold}% · {formatDistance(entry.distance)}</span>
+            <span class="chip">{entry.label} · {formatDistance(entry.distance)}</span>
           {/each}
         {:else}
           <span class="chip chip--muted">{$t.slopes.detail.gradientEmpty}</span>
