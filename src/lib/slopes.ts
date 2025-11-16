@@ -34,7 +34,7 @@ export interface EnrichedSlope extends SlopeRecord {
   detailDifficultyScore: number;
   metrics: SlopeMetrics;
   suitability: SuitabilityLevel;
-  burstWarning: boolean;
+  burstWarning: number | null;
   difficultyTags: string[];
 }
 
@@ -320,8 +320,14 @@ const MIN_SUSTAINED_DISTANCE_RATIO = 0.15;
 
 function enrichSlope(slope: SlopeRecord, rider: UserSettings): EnrichedSlope {
   const minSpeed = computeMinSpeed(rider);
-  const averagePower = computePowerRequirement(slope.avgGradient / 100, minSpeed, rider);
-  const peakPower = computePowerRequirement(slope.maxGradient / 100, minSpeed, rider);
+  const weightedAvgGradient = computeWeightedAverageGradient(slope.gradientDistances, slope.avgGradient);
+  const averagePower = computePowerRequirement(weightedAvgGradient / 100, minSpeed, rider);
+  const peakPower = computePeakPowerRequirement(
+    slope.gradientDistances,
+    slope.maxGradient,
+    minSpeed,
+    rider,
+  );
   const ftp = Math.max(rider.ftp, 1);
   const ftpRatio = averagePower / ftp;
   const peakFtpRatio = peakPower / ftp;
@@ -335,7 +341,7 @@ function enrichSlope(slope: SlopeRecord, rider: UserSettings): EnrichedSlope {
     ftpRatio,
   );
   const suitability = classifyDifficulty(Math.max(ftpRatio, sustainedFtpRatio));
-  const burstWarning = peakFtpRatio > 1.2;
+  const burstWarning = peakFtpRatio > 1.2 ? peakFtpRatio : null;
   const detailDifficultyScore = computeDetailDifficulty(slope.gradientDistances, rider, minSpeed);
   const difficultyTags = buildDifficultyTags(slope, slope.gradientDistances);
 
@@ -355,6 +361,45 @@ function enrichSlope(slope: SlopeRecord, rider: UserSettings): EnrichedSlope {
     burstWarning,
     difficultyTags,
   };
+}
+
+function computeWeightedAverageGradient(
+  gradientDistances: GradientBreakdown,
+  fallbackGradient: number,
+): number {
+  let totalDistance = 0;
+  let weightedSum = 0;
+
+  for (const threshold of GRADIENT_THRESHOLDS) {
+    const distance = Math.max(gradientDistances[threshold] ?? 0, 0);
+    totalDistance += distance;
+    weightedSum += distance * threshold;
+  }
+
+  if (totalDistance > 0) {
+    return weightedSum / totalDistance;
+  }
+
+  return fallbackGradient;
+}
+
+const MIN_PEAK_DISTANCE_KM = 0.05;
+
+function computePeakPowerRequirement(
+  gradientDistances: GradientBreakdown,
+  fallbackGradient: number,
+  minSpeed: number,
+  rider: UserSettings,
+): number {
+  for (let index = GRADIENT_THRESHOLDS.length - 1; index >= 0; index -= 1) {
+    const threshold = GRADIENT_THRESHOLDS[index];
+    const distance = Math.max(gradientDistances[threshold] ?? 0, 0);
+    if (distance >= MIN_PEAK_DISTANCE_KM) {
+      return computePowerRequirement(threshold / 100, minSpeed, rider);
+    }
+  }
+
+  return computePowerRequirement(fallbackGradient / 100, minSpeed, rider);
 }
 
 function computeMinSpeed(rider: UserSettings): number {

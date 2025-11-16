@@ -311,7 +311,12 @@
                       </div>
                     </div>
                     {#if row.burstWarning}
-                      <p class="burst">{$t.slopes.burstWarning}</p>
+                      <p class="burst">
+                        {$t.slopes.burstWarning.replace(
+                          '{value}',
+                          formatFtpRatio(row.burstWarning),
+                        )}
+                      </p>
                     {/if}
                   </button>
                   {#if expandedSlopeId === row.name}
