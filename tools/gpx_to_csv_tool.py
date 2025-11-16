@@ -109,26 +109,31 @@ def filter_points(points: Iterable[TrackPoint], start: Optional[datetime], end: 
         filtered.append(point)
     return filtered
 def _smooth_elevations(points: List[TrackPoint], window: int) -> List[TrackPoint]:
-    """Return a new list with smoothed elevations using a centered moving average.
-    window: odd or even accepted; values <=1 return original elevations.
-    """
+    """Return a new list with smoothed elevations using a centered moving average."""
     n = len(points)
     if window is None or window <= 1 or n == 0:
         return [TrackPoint(p.latitude, p.longitude, p.elevation, p.time) for p in points]
+    window = min(window, n)
     half = window // 2
+    prefix: List[float] = [0.0]
+    for pt in points:
+        prefix.append(prefix[-1] + pt.elevation)
     smoothed: List[TrackPoint] = []
     for i in range(n):
-        start = max(0, i - half)
-        end = min(n, i - half + window)  # try to keep approx window size
+        start = i - half
+        end = start + window
+        if start < 0:
+            end = min(n, end - start)
+            start = 0
+        if end > n:
+            start = max(0, start - (end - n))
+            end = n
         if end <= start:
-            start = max(0, i)
-            end = min(n, i + 1)
-        s = 0.0
-        cnt = 0
-        for j in range(start, end):
-            s += points[j].elevation
-            cnt += 1
-        ele = s / cnt if cnt else points[i].elevation
+            start = i
+            end = i + 1
+        total = prefix[end] - prefix[start]
+        count = end - start
+        ele = total / count if count else points[i].elevation
         smoothed.append(TrackPoint(points[i].latitude, points[i].longitude, ele, points[i].time))
     return smoothed
 def compute_statistics(points: List[TrackPoint], smoothing_points: int = 1, min_seg_m: float = 1.0) -> SlopeStats:
@@ -195,6 +200,32 @@ def write_paths_csv(output_dir: str, points: List[TrackPoint]) -> str:
         for point in points:
             writer.writerow([f"{point.latitude:.6f}", f"{point.longitude:.6f}", f"{point.elevation:.2f}"])
     return file_path
+
+
+def read_paths_csv(file_path: str) -> List[TrackPoint]:
+    """Load TrackPoint instances from a previously exported paths.csv file."""
+    points: List[TrackPoint] = []
+    with open(file_path, "r", newline="", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        if reader.fieldnames is None:
+            raise ValueError("Missing header row in paths.csv")
+        base_time = datetime(1970, 1, 1, tzinfo=timezone.utc)
+        for idx, row in enumerate(reader):
+            try:
+                lat_val = row.get("lat") or row.get("latitude")
+                lng_val = row.get("lng") or row.get("lon") or row.get("longitude")
+                ele_val = row.get("ele") or row.get("elevation")
+                lat = float(lat_val) if lat_val is not None else None
+                lng = float(lng_val) if lng_val is not None else None
+                ele = float(ele_val) if ele_val is not None else None
+            except ValueError as exc:
+                raise ValueError(f"Invalid numeric value on row {idx + 2}: {exc}") from exc
+            if lat is None or lng is None or ele is None:
+                raise ValueError(f"Missing lat/lng/ele values on row {idx + 2}")
+            points.append(TrackPoint(lat, lng, ele, base_time + timedelta(seconds=idx)))
+    if not points:
+        raise ValueError("No path points found in the selected CSV file")
+    return points
 class GPXConverterGUI:
     def __init__(self) -> None:
         self.root = tk.Tk()
@@ -273,6 +304,11 @@ class GPXConverterGUI:
             variable=self.reverse_points_var,
         ).grid(column=0, row=9, columnspan=2, sticky=tk.W)
         ttk.Button(main_frame, text="Convert", command=self.convert).grid(column=1, row=10, pady=(20, 0))
+        ttk.Button(
+            main_frame,
+            text="Recalculate slopes from paths.csv",
+            command=self.recalc_from_paths,
+        ).grid(column=1, row=11, pady=(0, 0))
         for child in main_frame.winfo_children():
             child.grid_configure(padx=5, pady=5)
         # Two-way sync: update sliders when entries change
@@ -360,6 +396,15 @@ class GPXConverterGUI:
             return
         self.start_preview_var.set(self._format_elevation_preview(int(round(self.start_index_var.get()))))
         self.end_preview_var.set(self._format_elevation_preview(int(round(self.end_index_var.get()))))
+
+    def _get_smoothing_points(self) -> int:
+        value = self.smoothing_points_var.get()
+        try:
+            points = int(value)
+        except (TypeError, ValueError):
+            points = 1
+        return max(1, points)
+
     def _find_nearest_index(self, dt: datetime) -> int:
         if not self.points:
             return 0
@@ -536,13 +581,7 @@ class GPXConverterGUI:
             return
         # Use chosen output dir or default to GPX dir
         output_dir = self.output_dir_var.get().strip() or os.path.dirname(os.path.abspath(gpx_path))
-        smoothing_points = self.smoothing_points_var.get()
-        if not isinstance(smoothing_points, int):
-            try:
-                smoothing_points = int(smoothing_points)
-            except Exception:
-                smoothing_points = 1
-        smoothing_points = max(1, smoothing_points)
+        smoothing_points = self._get_smoothing_points()
         if self.reverse_points_var.get():
             selected_points = list(reversed(selected_points))
         stats = compute_statistics(selected_points, smoothing_points=smoothing_points, min_seg_m=2.0)
@@ -552,6 +591,31 @@ class GPXConverterGUI:
             "Success",
             f"Conversion complete!\nSlopes CSV: {slopes_path}\nPaths CSV: {paths_path}"
         )
+        self.output_dir_var.set(output_dir)
+        if self._config is None:
+            self._config = {}
+        self._config["last_output_dir"] = output_dir
+        self._save_config()
+
+    def recalc_from_paths(self) -> None:
+        file_path = filedialog.askopenfilename(
+            title="Select paths.csv file",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+        )
+        if not file_path:
+            return
+        try:
+            points = read_paths_csv(file_path)
+        except Exception as exc:  # pylint: disable=broad-except
+            messagebox.showerror("Error", f"Failed to read paths CSV: {exc}")
+            return
+        if self.reverse_points_var.get():
+            points = list(reversed(points))
+        smoothing_points = self._get_smoothing_points()
+        stats = compute_statistics(points, smoothing_points=smoothing_points, min_seg_m=2.0)
+        output_dir = self.output_dir_var.get().strip() or os.path.dirname(os.path.abspath(file_path))
+        slopes_path = write_slopes_csv(output_dir, stats)
+        messagebox.showinfo("Success", f"Recalculated slopes CSV: {slopes_path}")
         self.output_dir_var.set(output_dir)
         if self._config is None:
             self._config = {}
