@@ -363,8 +363,8 @@
   }
 
   .filters__layout {
-    display: grid;
-    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+    display: flex;
+    flex-direction: column;
     gap: 2rem;
   }
 
@@ -633,10 +633,6 @@
   }
 
   @media (max-width: 1024px) {
-    .filters__layout {
-      grid-template-columns: 1fr;
-    }
-
     .filters__anchor {
       top: -3rem;
     }

@@ -26,6 +26,7 @@ export interface SlopeMetrics {
   peakPowerWatts: number;
   ftpRatio: number;
   peakFtpRatio: number;
+  sustainedFtpRatio: number;
   climbTimeSeconds: number;
 }
 
@@ -314,6 +315,8 @@ const MIN_SPEED_FLOOR = 0.7; // metres per second (~2.5 km/h)
 const DEFAULT_CRR = 0.0045;
 const DEFAULT_CDA = 0.32;
 const DEFAULT_AIR_DENSITY = 1.226;
+const MIN_SUSTAINED_DISTANCE_KM = 0.2;
+const MIN_SUSTAINED_DISTANCE_RATIO = 0.15;
 
 function enrichSlope(slope: SlopeRecord, rider: UserSettings): EnrichedSlope {
   const minSpeed = computeMinSpeed(rider);
@@ -323,7 +326,15 @@ function enrichSlope(slope: SlopeRecord, rider: UserSettings): EnrichedSlope {
   const ftpRatio = averagePower / ftp;
   const peakFtpRatio = peakPower / ftp;
   const climbTimeSeconds = computeClimbTime(slope.distanceKm, minSpeed);
-  const suitability = classifyDifficulty(Math.max(ftpRatio, peakFtpRatio));
+  const sustainedFtpRatio = computeSustainedDifficultyRatio(
+    slope.gradientDistances,
+    rider,
+    minSpeed,
+    ftp,
+    slope.distanceKm,
+    ftpRatio,
+  );
+  const suitability = classifyDifficulty(Math.max(ftpRatio, sustainedFtpRatio));
   const burstWarning = peakFtpRatio > 1.2;
   const detailDifficultyScore = computeDetailDifficulty(slope.gradientDistances, rider, minSpeed);
   const difficultyTags = buildDifficultyTags(slope, slope.gradientDistances);
@@ -337,6 +348,7 @@ function enrichSlope(slope: SlopeRecord, rider: UserSettings): EnrichedSlope {
       peakPowerWatts: peakPower,
       ftpRatio,
       peakFtpRatio,
+      sustainedFtpRatio,
       climbTimeSeconds,
     },
     suitability,
@@ -373,6 +385,39 @@ function computeClimbTime(distanceKm: number, speed: number): number {
   }
 
   return distanceMeters / speed;
+}
+
+function computeSustainedDifficultyRatio(
+  gradientDistances: GradientBreakdown,
+  rider: UserSettings,
+  minSpeed: number,
+  ftp: number,
+  totalDistanceKm: number,
+  fallbackRatio: number,
+): number {
+  const ftpValue = Math.max(ftp, 1);
+  const totalDistance = Math.max(totalDistanceKm, 0);
+  let maxRatio = 0;
+
+  for (const threshold of GRADIENT_THRESHOLDS) {
+    const sustainedDistance = Math.max(gradientDistances[threshold] ?? 0, 0);
+    const sustainedFraction = totalDistance > 0 ? sustainedDistance / totalDistance : 0;
+    if (
+      sustainedDistance >= MIN_SUSTAINED_DISTANCE_KM ||
+      sustainedFraction >= MIN_SUSTAINED_DISTANCE_RATIO
+    ) {
+      const grade = threshold / 100;
+      const requiredPower = computePowerRequirement(grade, minSpeed, rider);
+      const ratio = requiredPower / ftpValue;
+      maxRatio = Math.max(maxRatio, ratio);
+    }
+  }
+
+  if (maxRatio > 0) {
+    return maxRatio;
+  }
+
+  return fallbackRatio;
 }
 
 function classifyDifficulty(ratio: number): SuitabilityLevel {
