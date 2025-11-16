@@ -32,7 +32,7 @@
       distance,
       label: nextThreshold ? `${threshold}%-${nextThreshold}%` : `>${threshold}%`,
     };
-  }).filter((entry) => entry.distance > 0.01);
+  }).filter((entry) => entry.distance > 0.003);
 
   $: tagLabels = slope.difficultyTags;
 
