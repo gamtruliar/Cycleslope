@@ -42,6 +42,9 @@
   $: chartBounds = computeBounds(profile);
   $: areaPath = buildAreaPath(profile, chartBounds);
   $: linePath = buildLinePath(profile, chartBounds);
+  $: youtubeId = slope.youtubeLink?.trim() ?? '';
+  $: youtubeUrl = youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : '';
+  $: youtubeEmbed = youtubeId ? `https://www.youtube.com/embed/${youtubeId}` : '';
 
   let hoverIndex: number | null = null;
   let chartElement: HTMLDivElement | null = null;
@@ -266,6 +269,23 @@
       </div>
     {/if}
   </div>
+  {#if youtubeId}
+    <div class="slope-detail__video">
+      <div class="section__title">
+        <p>{$t.slopes.detail.videoTitle}</p>
+        <a href={youtubeUrl} target="_blank" rel="noreferrer">{$t.slopes.detail.videoCta}</a>
+      </div>
+      <div class="video__frame">
+        <iframe
+          title={$t.slopes.detail.videoTitle}
+          src={`${youtubeEmbed}?rel=0`}
+          loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+        ></iframe>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -336,6 +356,11 @@
     gap: 0.75rem;
   }
 
+  .slope-detail__video {
+    display: grid;
+    gap: 0.75rem;
+  }
+
   .profile__header {
     display: flex;
     justify-content: space-between;
@@ -374,6 +399,22 @@
   svg {
     width: 100%;
     height: auto;
+  }
+
+  .video__frame {
+    position: relative;
+    padding-top: 56.25%;
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(15, 23, 42, 0.08);
+  }
+
+  .video__frame iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
   }
 
   .profile__area {

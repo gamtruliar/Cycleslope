@@ -17,6 +17,7 @@ export interface SlopeRecord {
   maxGradient: number;
   gradientDistances: GradientBreakdown;
   pathGroupId: string | null;
+  youtubeLink: string | null;
 }
 
 export interface SlopeMetrics {
@@ -245,6 +246,7 @@ function transformRecord(record: Record<string, string>, lineNumber: number): Sl
   const maxGradient = parseNumberField(record['max_gradient'] ?? record['max_gradient_pct'], 'max_gradient', lineNumber);
   const gradientDistances = parseGradientDistances(record, lineNumber);
   const pathGroupId = (record['path_group_id'] ?? record['group_id'] ?? record['pathgroupid'] ?? '').trim();
+  const youtubeLink = (record['youtube_link'] ?? '').trim();
 
   if (!name) {
     throw new Error(`Row ${lineNumber} is missing a name column.`);
@@ -263,6 +265,7 @@ function transformRecord(record: Record<string, string>, lineNumber: number): Sl
     maxGradient,
     gradientDistances,
     pathGroupId: pathGroupId || null,
+    youtubeLink: youtubeLink || null,
   };
 }
 

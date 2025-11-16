@@ -141,6 +141,8 @@ const translations = {
         profileError: '高度圖暫時無法顯示。',
         profileMissing: '此爬坡尚未連結路線資料。',
         profileUnavailable: '找不到可用的高度資料。',
+        videoTitle: '路段影片',
+        videoCta: '在 YouTube 觀看',
         tags: {
           sustained13: '持續 10%+',
           punchy20: '爆發型陡坡',
@@ -343,6 +345,8 @@ const translations = {
         profileError: 'Elevation data is unavailable.',
         profileMissing: 'This climb is missing a path trace.',
         profileUnavailable: 'No elevation samples found.',
+        videoTitle: 'Video preview',
+        videoCta: 'Watch on YouTube',
         tags: {
           sustained13: 'Sustained 10%+',
           punchy20: 'Punchy ramps',
