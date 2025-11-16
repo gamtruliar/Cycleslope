@@ -138,33 +138,74 @@ def _smooth_elevations(points: List[TrackPoint], window: int) -> List[TrackPoint
         ele = total / count if count else points[i].elevation
         smoothed.append(TrackPoint(points[i].latitude, points[i].longitude, ele, points[i].time))
     return smoothed
+def _calculate_max_gradient(filtered_segments: List[tuple[float, float]], window_size: int) -> float:
+    """Return the maximum gradient using a rolling window of segments."""
+    if not filtered_segments:
+        return 0.0
+
+    safe_window = max(1, window_size)
+    cumulative_distance = [0.0]
+    cumulative_elevation = [0.0]
+
+    for horiz_distance, elevation_change in filtered_segments:
+        cumulative_distance.append(cumulative_distance[-1] + horiz_distance)
+        cumulative_elevation.append(cumulative_elevation[-1] + elevation_change)
+
+    max_grade = 0.0
+    for i in range(1, len(cumulative_distance)):
+        start_idx = max(0, i - safe_window)
+        horiz_delta = cumulative_distance[i] - cumulative_distance[start_idx]
+        if horiz_delta <= 0:
+            continue
+        elev_delta = cumulative_elevation[i] - cumulative_elevation[start_idx]
+        grade = (elev_delta / horiz_delta) * 100
+        max_grade = max(max_grade, grade)
+
+    return max_grade
+
 def compute_statistics(points: List[TrackPoint], smoothing_points: int = 1, min_seg_m: float = 1.0) -> SlopeStats:
     """Compute distance, climbing stats, and gradient distribution."""
     if len(points) < 2:
         return SlopeStats(0.0, 0.0, 0.0, 0.0, {threshold: 0.0 for threshold in GRADIENT_THRESHOLDS})
-    pts = _smooth_elevations(points, smoothing_points) if smoothing_points and smoothing_points > 1 else points
+
+    use_window = smoothing_points if smoothing_points is not None else 1
+    pts = _smooth_elevations(points, use_window) if use_window and use_window > 1 else points
+
     total_distance = 0.0
     horizontal_distance_sum = 0.0
     total_climb = 0.0
-    max_grade = 0.0
     gradient_distances = {threshold: 0.0 for threshold in GRADIENT_THRESHOLDS}
-    prev=pts[0]
+    filtered_segments: List[tuple[float, float]] = []
+
+    prev = pts[0]
     for curr in pts[1:]:
         horiz_distance = haversine_distance(prev.latitude, prev.longitude, curr.latitude, curr.longitude)
         elevation_change = curr.elevation - prev.elevation
-        if horiz_distance <= 0 or horiz_distance < min_seg_m:
+
+        if horiz_distance <= 0:
             continue
-        prev=curr
+
+        if horiz_distance >= min_seg_m:
+            filtered_segments.append((horiz_distance, elevation_change))
+
+        prev = curr
+
+    for horiz_distance, elevation_change in filtered_segments:
         grade = (elevation_change / horiz_distance) * 100
-        max_grade = max(max_grade, grade)
+
         if elevation_change > 0:
             total_climb += elevation_change
+
         horizontal_distance_sum += horiz_distance
         total_distance += math.sqrt(horiz_distance ** 2 + elevation_change ** 2)
+
         if grade > 0:
             for threshold in GRADIENT_THRESHOLDS:
                 if grade >= threshold:
                     gradient_distances[threshold] += horiz_distance
+
+    max_grade = _calculate_max_gradient(filtered_segments, use_window)
+
     horizontal_for_grade = horizontal_distance_sum if horizontal_distance_sum > 0 else total_distance
     avg_grade = (total_climb / horizontal_for_grade * 100) if horizontal_for_grade > 0 else 0.0
     distance_output = horizontal_distance_sum if horizontal_distance_sum > 0 else total_distance
@@ -191,6 +232,35 @@ def write_slopes_csv(output_dir: str, stats: SlopeStats) -> str:
         ]
         row.extend([f"{stats.gradient_distances_km[threshold]:.3f}" for threshold in GRADIENT_THRESHOLDS])
         writer.writerow(row)
+    return file_path
+
+
+def write_slopes_csv_batch(output_dir: str, rows: List[tuple[str, SlopeStats]]) -> str:
+    os.makedirs(output_dir, exist_ok=True)
+    file_path = os.path.join(output_dir, "slopes.csv")
+    headers = [
+        "name",
+        "distance_km",
+        "total_ascent_m",
+        "avg_gradient",
+        "max_gradient",
+    ]
+    headers.extend(GRADIENT_FIELD_NAMES)
+
+    with open(file_path, "w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(headers)
+        for name, stats in rows:
+            row = [
+                name,
+                f"{stats.distance_km:.2f}",
+                f"{stats.total_ascent_m:.2f}",
+                f"{stats.avg_gradient:.2f}",
+                f"{stats.max_gradient:.2f}",
+            ]
+            row.extend([f"{stats.gradient_distances_km[threshold]:.3f}" for threshold in GRADIENT_THRESHOLDS])
+            writer.writerow(row)
+
     return file_path
 def write_paths_csv(output_dir: str, points: List[TrackPoint]) -> str:
     os.makedirs(output_dir, exist_ok=True)
@@ -299,7 +369,7 @@ class GPXConverterGUI:
         ttk.Label(main_frame, textvariable=self.end_preview_var).grid(column=2, row=7, sticky=tk.W)
         # Smoothing controls
         ttk.Label(main_frame, text="Smoothing window (points)").grid(column=0, row=8, sticky=tk.W)
-        tk.Spinbox(main_frame, from_=1, to=201, increment=1, width=8, textvariable=self.smoothing_points_var).grid(column=1, row=8, sticky=tk.W)
+        tk.Spinbox(main_frame, from_=0, to=201, increment=1, width=8, textvariable=self.smoothing_points_var).grid(column=1, row=8, sticky=tk.W)
         ttk.Checkbutton(
             main_frame,
             text="Reverse track (treat descent as climb)",
@@ -311,6 +381,11 @@ class GPXConverterGUI:
             text="Recalculate slopes from paths.csv",
             command=self.recalc_from_paths,
         ).grid(column=1, row=11, pady=(0, 0))
+        ttk.Button(
+            main_frame,
+            text="Recalculate folder of CSVs",
+            command=self.recalc_folder,
+        ).grid(column=1, row=12, pady=(0, 0))
         for child in main_frame.winfo_children():
             child.grid_configure(padx=5, pady=5)
         # Two-way sync: update sliders when entries change
@@ -404,8 +479,8 @@ class GPXConverterGUI:
         try:
             points = int(value)
         except (TypeError, ValueError):
-            points = 1
-        return max(1, points)
+            points = 0
+        return max(0, points)
 
     def _find_nearest_index(self, dt: datetime) -> int:
         if not self.points:
@@ -622,6 +697,51 @@ class GPXConverterGUI:
         if self._config is None:
             self._config = {}
         self._config["last_output_dir"] = output_dir
+        self._save_config()
+
+    def recalc_folder(self) -> None:
+        folder = filedialog.askdirectory(title="Select folder containing paths CSV files")
+        if not folder:
+            return
+
+        csv_files = sorted(
+            file_name
+            for file_name in os.listdir(folder)
+            if file_name.lower().endswith(".csv")
+        )
+
+        if not csv_files:
+            messagebox.showerror("Error", "No CSV files found in the selected folder.")
+            return
+
+        smoothing_points = self._get_smoothing_points()
+        results: List[tuple[str, SlopeStats]] = []
+        errors: List[str] = []
+
+        for file_name in csv_files:
+            file_path = os.path.join(folder, file_name)
+            try:
+                points = read_paths_csv(file_path)
+                if self.reverse_points_var.get():
+                    points = list(reversed(points))
+                stats = compute_statistics(points, smoothing_points=smoothing_points, min_seg_m=2.0)
+                results.append((file_name, stats))
+            except Exception as exc:  # pylint: disable=broad-except
+                errors.append(f"{file_name}: {exc}")
+
+        if not results:
+            messagebox.showerror("Error", "Failed to calculate slopes for any CSV files in the folder.")
+            return
+
+        slopes_path = write_slopes_csv_batch(folder, results)
+        summary = [f"Recalculated slopes for {len(results)} file(s).", f"Output: {slopes_path}"]
+        if errors:
+            summary.append("Skipped files:\n" + "\n".join(errors))
+        messagebox.showinfo("Success", "\n".join(summary))
+        self.output_dir_var.set(folder)
+        if self._config is None:
+            self._config = {}
+        self._config["last_output_dir"] = folder
         self._save_config()
     def run(self) -> None:
         self.root.mainloop()
