@@ -7,7 +7,7 @@ import tkinter as tk
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from tkinter import filedialog, messagebox, ttk
-from typing import Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional
 from xml.etree import ElementTree as ET
 ISO_FORMATS = [
     "%Y-%m-%dT%H:%M:%S%z",
@@ -15,12 +15,24 @@ ISO_FORMATS = [
     "%Y-%m-%dT%H:%M:%S",
     "%Y-%m-%dT%H:%M:%S.%f",
 ]
+GRADIENT_THRESHOLDS = (3, 5, 7, 10, 13, 17, 20, 25, 30, 40)
+
+
 @dataclass
 class TrackPoint:
     latitude: float
     longitude: float
     elevation: float
     time: datetime
+
+
+@dataclass
+class SlopeStats:
+    distance_km: float
+    total_ascent_m: float
+    avg_gradient: float
+    max_gradient: float
+    gradient_distances_km: Dict[int, float]
 def parse_iso_datetime(value: str) -> datetime:
     """Parse an ISO formatted string, supporting a trailing Z."""
     value = value.strip()
@@ -94,19 +106,16 @@ def _smooth_elevations(points: List[TrackPoint], window: int) -> List[TrackPoint
         ele = s / cnt if cnt else points[i].elevation
         smoothed.append(TrackPoint(points[i].latitude, points[i].longitude, ele, points[i].time))
     return smoothed
-def compute_statistics(points: List[TrackPoint], smoothing_points: int = 1, min_seg_m: float = 1.0) -> tuple[float, float, float, float]:
-    """Compute distance, average grade, total climb, max grade.
-    smoothing_points: moving-average window on elevation (points); 1 disables.
-    min_seg_m: ignore segments shorter than this distance to reduce noise.
-    """
+def compute_statistics(points: List[TrackPoint], smoothing_points: int = 1, min_seg_m: float = 1.0) -> SlopeStats:
+    """Compute distance, climbing stats, and gradient distribution."""
     if len(points) < 2:
-        return 0.0, 0.0, 0.0, 0.0
-    # Smooth elevation if requested
+        return SlopeStats(0.0, 0.0, 0.0, 0.0, {threshold: 0.0 for threshold in GRADIENT_THRESHOLDS})
     pts = _smooth_elevations(points, smoothing_points) if smoothing_points and smoothing_points > 1 else points
     total_distance = 0.0
     horizontal_distance_sum = 0.0
     total_climb = 0.0
     max_grade = 0.0
+    gradient_distances = {threshold: 0.0 for threshold in GRADIENT_THRESHOLDS}
     for prev, curr in zip(pts, pts[1:]):
         horiz_distance = haversine_distance(prev.latitude, prev.longitude, curr.latitude, curr.longitude)
         elevation_change = curr.elevation - prev.elevation
@@ -118,19 +127,39 @@ def compute_statistics(points: List[TrackPoint], smoothing_points: int = 1, min_
             total_climb += elevation_change
         horizontal_distance_sum += horiz_distance
         total_distance += math.sqrt(horiz_distance ** 2 + elevation_change ** 2)
-    # Avoid div by zero
+        if grade > 0:
+            for threshold in GRADIENT_THRESHOLDS:
+                if grade >= threshold:
+                    gradient_distances[threshold] += horiz_distance
     horizontal_for_grade = horizontal_distance_sum if horizontal_distance_sum > 0 else total_distance
     avg_grade = (total_climb / horizontal_for_grade * 100) if horizontal_for_grade > 0 else 0.0
     distance_output = horizontal_distance_sum if horizontal_distance_sum > 0 else total_distance
-    return distance_output/1000,total_climb, avg_grade,  max_grade
-def write_slopes_csv(output_dir: str, stats: tuple[float, float, float, float]) -> str:
+    gradient_km = {threshold: value / 1000 for threshold, value in gradient_distances.items()}
+    return SlopeStats(distance_output / 1000, total_climb, avg_grade, max_grade, gradient_km)
+def write_slopes_csv(output_dir: str, stats: SlopeStats) -> str:
     os.makedirs(output_dir, exist_ok=True)
     file_path = os.path.join(output_dir, "slopes.csv")
-    headers = ["distance_km", "total_ascent_m", "avg_gradient", "max_gradient"]
+    headers = [
+        "distance_km",
+        "total_ascent_m",
+        "avg_gradient",
+        "max_gradient",
+        "detail_difficulty_score",
+    ]
+    headers.extend([f"gradient_{threshold}_distance_km" for threshold in GRADIENT_THRESHOLDS])
     with open(file_path, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(headers)
-        writer.writerow([f"{stats[0]:.2f}", f"{stats[1]:.2f}", f"{stats[2]:.2f}", f"{stats[3]:.2f}"])
+        detail_score = sum(stats.gradient_distances_km[threshold] * threshold for threshold in GRADIENT_THRESHOLDS)
+        row = [
+            f"{stats.distance_km:.2f}",
+            f"{stats.total_ascent_m:.2f}",
+            f"{stats.avg_gradient:.2f}",
+            f"{stats.max_gradient:.2f}",
+            f"{detail_score:.2f}",
+        ]
+        row.extend([f"{stats.gradient_distances_km[threshold]:.2f}" for threshold in GRADIENT_THRESHOLDS])
+        writer.writerow(row)
     return file_path
 def write_paths_csv(output_dir: str, points: List[TrackPoint]) -> str:
     os.makedirs(output_dir, exist_ok=True)

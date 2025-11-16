@@ -84,7 +84,7 @@ async function fetchAllGroups(): Promise<PathPoint[]> {
   const groupIds = Array.from(
     new Set(
       slopeRecords
-        .map((record) => record.pathGroupId.trim())
+        .map((record) => (record.pathGroupId ?? '').trim())
         .filter((groupId) => groupId.length > 0),
     ),
   );
@@ -95,8 +95,13 @@ async function fetchAllGroups(): Promise<PathPoint[]> {
 
   const groupPoints = await Promise.all(
     groupIds.map(async (groupId) => {
-      const points = await fetchGroup(groupId);
-      return simplifyPoints(points, MAX_POINTS_PER_GROUP);
+      try {
+        const points = await fetchGroup(groupId);
+        return simplifyPoints(points, MAX_POINTS_PER_GROUP);
+      } catch (error) {
+        console.warn(`Failed to load path data for ${groupId}:`, error);
+        return [];
+      }
     }),
   );
 
