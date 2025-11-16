@@ -401,10 +401,10 @@ function computeSustainedDifficultyRatio(
 
   for (const threshold of GRADIENT_THRESHOLDS) {
     const sustainedDistance = Math.max(gradientDistances[threshold] ?? 0, 0);
-    const sustainedFraction = totalDistance > 0 ? sustainedDistance / totalDistance : 0;
+    //const sustainedFraction = totalDistance > 0 ? sustainedDistance / totalDistance : 0;
     if (
-      sustainedDistance >= MIN_SUSTAINED_DISTANCE_KM ||
-      sustainedFraction >= MIN_SUSTAINED_DISTANCE_RATIO
+      sustainedDistance >= MIN_SUSTAINED_DISTANCE_KM
+      //sustainedFraction >= MIN_SUSTAINED_DISTANCE_RATIO
     ) {
       const grade = threshold / 100;
       const requiredPower = computePowerRequirement(grade, minSpeed, rider);
