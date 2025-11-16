@@ -16,6 +16,7 @@ ISO_FORMATS = [
     "%Y-%m-%dT%H:%M:%S.%f",
 ]
 GRADIENT_THRESHOLDS = (3, 5, 7, 10, 13, 17, 20, 25, 30, 40)
+GRADIENT_FIELD_NAMES = tuple(f"gradient_{threshold}_distance_km" for threshold in GRADIENT_THRESHOLDS)
 
 
 @dataclass
@@ -144,19 +145,16 @@ def write_slopes_csv(output_dir: str, stats: SlopeStats) -> str:
         "total_ascent_m",
         "avg_gradient",
         "max_gradient",
-        "detail_difficulty_score",
     ]
-    headers.extend([f"gradient_{threshold}_distance_km" for threshold in GRADIENT_THRESHOLDS])
+    headers.extend(GRADIENT_FIELD_NAMES)
     with open(file_path, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(headers)
-        detail_score = sum(stats.gradient_distances_km[threshold] * threshold for threshold in GRADIENT_THRESHOLDS)
         row = [
             f"{stats.distance_km:.2f}",
             f"{stats.total_ascent_m:.2f}",
             f"{stats.avg_gradient:.2f}",
             f"{stats.max_gradient:.2f}",
-            f"{detail_score:.2f}",
         ]
         row.extend([f"{stats.gradient_distances_km[threshold]:.2f}" for threshold in GRADIENT_THRESHOLDS])
         writer.writerow(row)
