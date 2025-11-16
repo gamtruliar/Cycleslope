@@ -1,6 +1,7 @@
-﻿"""GPX to CSV conversion tool with a simple Tkinter GUI."""
+"""GPX to CSV conversion tool with a simple Tkinter GUI."""
 from __future__ import annotations
 import csv
+import json
 import math
 import os
 import tkinter as tk
@@ -17,6 +18,7 @@ ISO_FORMATS = [
 ]
 GRADIENT_THRESHOLDS = (3, 5, 7, 10, 13, 17, 20, 25, 30, 40)
 GRADIENT_FIELD_NAMES = tuple(f"gradient_{threshold}_distance_km" for threshold in GRADIENT_THRESHOLDS)
+CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".gpx_to_csv_tool.json")
 
 
 @dataclass
@@ -65,6 +67,12 @@ def parse_gpx(file_path: str) -> List[TrackPoint]:
         points.append(TrackPoint(lat, lon, elevation, time))
     points.sort(key=lambda p: p.time)
     return points
+
+def datetime_to_timestamp(dt: datetime) -> float:
+    """Convert datetime to POSIX seconds, treating naive as UTC."""
+    if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.timestamp()
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculate the Haversine distance in meters between two points."""
     radius = 6_371_000  # meters
@@ -77,10 +85,13 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return radius * c
 def filter_points(points: Iterable[TrackPoint], start: Optional[datetime], end: Optional[datetime]) -> List[TrackPoint]:
     filtered: List[TrackPoint] = []
+    start_ts = datetime_to_timestamp(start) if start else None
+    end_ts = datetime_to_timestamp(end) if end else None
     for point in points:
-        if start and point.time < start:
+        ts = datetime_to_timestamp(point.time)
+        if start_ts is not None and ts < start_ts:
             continue
-        if end and point.time > end:
+        if end_ts is not None and ts > end_ts:
             continue
         filtered.append(point)
     return filtered
@@ -179,11 +190,16 @@ class GPXConverterGUI:
         self.output_dir_var = tk.StringVar()
         self.start_time_var = tk.StringVar()
         self.end_time_var = tk.StringVar()
-        self.smoothing_points_var = tk.IntVar(value=5)  # 1 = off
+        self.start_offset_var = tk.StringVar(value="Offset: --:--")
+        self.end_offset_var = tk.StringVar(value="Offset: --:--")
+        self.smoothing_points_var = tk.IntVar(value=20)  # 1 = off
         # Holds GPX points once a file is chosen
         self.points: List[TrackPoint] = []
         # Internal guard to avoid feedback loops when syncing widget values
         self._syncing = False
+        local_tz = datetime.now().astimezone().tzinfo
+        self._local_tz = local_tz if local_tz is not None else timezone.utc
+        self._config = self._load_config()
         ttk.Label(main_frame, text="GPX File:").grid(column=0, row=0, sticky=tk.W)
         gpx_entry = ttk.Entry(main_frame, width=50, textvariable=self.gpx_path_var)
         gpx_entry.grid(column=1, row=0, sticky=(tk.W+tk.E))
@@ -195,10 +211,14 @@ class GPXConverterGUI:
         ttk.Button(main_frame, text="Browse", command=self.select_output_dir).grid(column=2, row=1, padx=5)
         ttk.Label(main_frame, text="Start Time (ISO)").grid(column=0, row=2, sticky=tk.W, pady=(10, 0))
         ttk.Entry(main_frame, width=30, textvariable=self.start_time_var).grid(column=1, row=2, sticky=tk.W, pady=(10, 0))
-        ttk.Label(main_frame, text="End Time (ISO)").grid(column=0, row=3, sticky=tk.W, pady=(10, 0))
-        ttk.Entry(main_frame, width=30, textvariable=self.end_time_var).grid(column=1, row=3, sticky=tk.W, pady=(10, 0))
+        ttk.Label(main_frame, text="Start Offset (mm:ss)").grid(column=0, row=3, sticky=tk.W)
+        ttk.Label(main_frame, textvariable=self.start_offset_var).grid(column=1, row=3, sticky=tk.W)
+        ttk.Label(main_frame, text="End Time (ISO)").grid(column=0, row=4, sticky=tk.W, pady=(10, 0))
+        ttk.Entry(main_frame, width=30, textvariable=self.end_time_var).grid(column=1, row=4, sticky=tk.W, pady=(10, 0))
+        ttk.Label(main_frame, text="End Offset (mm:ss)").grid(column=0, row=5, sticky=tk.W)
+        ttk.Label(main_frame, textvariable=self.end_offset_var).grid(column=1, row=5, sticky=tk.W)
         # Sliders for selecting start/end by index within the loaded GPX points
-        ttk.Label(main_frame, text="Start (slider)").grid(column=0, row=4, sticky=tk.W)
+        ttk.Label(main_frame, text="Start (slider)").grid(column=0, row=6, sticky=tk.W)
         self.start_index_var = tk.DoubleVar(value=0.0)
         self.start_scale = ttk.Scale(
             main_frame,
@@ -210,8 +230,8 @@ class GPXConverterGUI:
             state="disabled",
             length=300,
         )
-        self.start_scale.grid(column=1, row=4, sticky=(tk.W+tk.E))
-        ttk.Label(main_frame, text="End (slider)").grid(column=0, row=5, sticky=tk.W)
+        self.start_scale.grid(column=1, row=6, sticky=(tk.W+tk.E))
+        ttk.Label(main_frame, text="End (slider)").grid(column=0, row=7, sticky=tk.W)
         self.end_index_var = tk.DoubleVar(value=0.0)
         self.end_scale = ttk.Scale(
             main_frame,
@@ -223,21 +243,83 @@ class GPXConverterGUI:
             state="disabled",
             length=300,
         )
-        self.end_scale.grid(column=1, row=5, sticky=(tk.W+tk.E))
+        self.end_scale.grid(column=1, row=7, sticky=(tk.W+tk.E))
         # Smoothing controls
-        ttk.Label(main_frame, text="Smoothing window (points)").grid(column=0, row=6, sticky=tk.W)
-        tk.Spinbox(main_frame, from_=1, to=201, increment=1, width=8, textvariable=self.smoothing_points_var).grid(column=1, row=6, sticky=tk.W)
-        ttk.Button(main_frame, text="Convert", command=self.convert).grid(column=1, row=7, pady=(20, 0))
+        ttk.Label(main_frame, text="Smoothing window (points)").grid(column=0, row=8, sticky=tk.W)
+        tk.Spinbox(main_frame, from_=1, to=201, increment=1, width=8, textvariable=self.smoothing_points_var).grid(column=1, row=8, sticky=tk.W)
+        ttk.Button(main_frame, text="Convert", command=self.convert).grid(column=1, row=9, pady=(20, 0))
         for child in main_frame.winfo_children():
             child.grid_configure(padx=5, pady=5)
         # Two-way sync: update sliders when entries change
         self.start_time_var.trace_add("write", self._on_start_entry_changed)
         self.end_time_var.trace_add("write", self._on_end_entry_changed)
+        last_output = self._config.get("last_output_dir") if self._config else None
+        if last_output:
+            self.output_dir_var.set(last_output)
+
+    def _load_config(self) -> Optional[Dict[str, str]]:
+        if not os.path.exists(CONFIG_PATH):
+            return None
+        try:
+            with open(CONFIG_PATH, "r", encoding="utf-8") as handle:
+                data = json.load(handle)
+        except (OSError, json.JSONDecodeError):
+            return None
+        return data if isinstance(data, dict) else None
+
+    def _save_config(self) -> None:
+        if self._config is None:
+            self._config = {}
+        try:
+            with open(CONFIG_PATH, "w", encoding="utf-8") as handle:
+                json.dump(self._config, handle)
+        except OSError:
+            pass
+
     def _to_timestamp(self, dt: datetime) -> float:
         """Convert datetime to POSIX seconds, treating naive as UTC to avoid tz errors."""
+        return datetime_to_timestamp(dt)
+
+    def _format_local(self, dt: datetime) -> str:
         if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
             dt = dt.replace(tzinfo=timezone.utc)
-        return dt.timestamp()
+        return dt.astimezone(self._local_tz).isoformat()
+
+    def _parse_user_datetime(self, text: str) -> datetime:
+        dt = parse_iso_datetime(text)
+        if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
+            dt = dt.replace(tzinfo=self._local_tz)
+        return dt
+
+    def _format_offset(self, dt: Optional[datetime]) -> str:
+        if not self.points or dt is None:
+            return "Offset: --:--"
+        try:
+            base_dt = self.points[0].time
+            delta = abs(self._to_timestamp(dt) - self._to_timestamp(base_dt))
+        except (IndexError, ValueError):
+            return "Offset: --:--"
+        minutes = int(delta // 60)
+        seconds = int(delta % 60)
+        return f"Offset: {minutes:02d}:{seconds:02d}"
+
+    def _update_offset_labels(self) -> None:
+        start_dt: Optional[datetime] = None
+        end_dt: Optional[datetime] = None
+        txt = self.start_time_var.get().strip()
+        if txt:
+            try:
+                start_dt = self._parse_user_datetime(txt)
+            except ValueError:
+                start_dt = None
+        txt = self.end_time_var.get().strip()
+        if txt:
+            try:
+                end_dt = self._parse_user_datetime(txt)
+            except ValueError:
+                end_dt = None
+        self.start_offset_var.set(self._format_offset(start_dt))
+        self.end_offset_var.set(self._format_offset(end_dt))
     def _find_nearest_index(self, dt: datetime) -> int:
         if not self.points:
             return 0
@@ -260,6 +342,8 @@ class GPXConverterGUI:
             self.end_scale.configure(state="disabled", from_=0.0, to=0.0)
             self.start_index_var.set(0.0)
             self.end_index_var.set(0.0)
+            self.start_offset_var.set("Offset: --:--")
+            self.end_offset_var.set("Offset: --:--")
             return
         n = len(self.points)
         self.start_scale.configure(state="normal", from_=0.0, to=float(n - 1))
@@ -269,10 +353,11 @@ class GPXConverterGUI:
         try:
             self.start_index_var.set(0.0)
             self.end_index_var.set(float(n - 1))
-            self.start_time_var.set(self.points[0].time.isoformat())
-            self.end_time_var.set(self.points[-1].time.isoformat())
+            self.start_time_var.set(self._format_local(self.points[0].time))
+            self.end_time_var.set(self._format_local(self.points[-1].time))
         finally:
             self._syncing = False
+        self._update_offset_labels()
     def _on_start_scale_move(self, value: str) -> None:
         if self._syncing or not self.points:
             return
@@ -282,15 +367,16 @@ class GPXConverterGUI:
             self._syncing = True
             try:
                 self.end_index_var.set(float(idx))
-                self.end_time_var.set(self.points[idx].time.isoformat())
+                self.end_time_var.set(self._format_local(self.points[idx].time))
             finally:
                 self._syncing = False
         # Update start entry
         self._syncing = True
         try:
-            self.start_time_var.set(self.points[idx].time.isoformat())
+            self.start_time_var.set(self._format_local(self.points[idx].time))
         finally:
             self._syncing = False
+        self._update_offset_labels()
     def _on_end_scale_move(self, value: str) -> None:
         if self._syncing or not self.points:
             return
@@ -300,15 +386,16 @@ class GPXConverterGUI:
             self._syncing = True
             try:
                 self.start_index_var.set(float(idx))
-                self.start_time_var.set(self.points[idx].time.isoformat())
+                self.start_time_var.set(self._format_local(self.points[idx].time))
             finally:
                 self._syncing = False
         # Update end entry
         self._syncing = True
         try:
-            self.end_time_var.set(self.points[idx].time.isoformat())
+            self.end_time_var.set(self._format_local(self.points[idx].time))
         finally:
             self._syncing = False
+        self._update_offset_labels()
     def _on_start_entry_changed(self, *_: object) -> None:
         if self._syncing or not self.points:
             return
@@ -316,15 +403,17 @@ class GPXConverterGUI:
         if not txt:
             return
         try:
-            dt = parse_iso_datetime(txt)
+            dt = self._parse_user_datetime(txt)
         except ValueError:
             return
         idx = self._find_nearest_index(dt)
         self._syncing = True
         try:
             self.start_index_var.set(float(idx))
+            self.start_time_var.set(self._format_local(dt))
         finally:
             self._syncing = False
+        self._update_offset_labels()
     def _on_end_entry_changed(self, *_: object) -> None:
         if self._syncing or not self.points:
             return
@@ -332,15 +421,17 @@ class GPXConverterGUI:
         if not txt:
             return
         try:
-            dt = parse_iso_datetime(txt)
+            dt = self._parse_user_datetime(txt)
         except ValueError:
             return
         idx = self._find_nearest_index(dt)
         self._syncing = True
         try:
             self.end_index_var.set(float(idx))
+            self.end_time_var.set(self._format_local(dt))
         finally:
             self._syncing = False
+        self._update_offset_labels()
     def select_file(self) -> None:
         file_path = filedialog.askopenfilename(
             title="Select GPX file",
@@ -381,12 +472,12 @@ class GPXConverterGUI:
             messagebox.showerror("Error", "No valid track points found in the GPX file.")
             return
         try:
-            start_time = parse_iso_datetime(self.start_time_var.get()) if self.start_time_var.get().strip() else None
+            start_time = self._parse_user_datetime(self.start_time_var.get()) if self.start_time_var.get().strip() else None
         except ValueError as exc:
             messagebox.showerror("Error", f"Invalid start time: {exc}")
             return
         try:
-            end_time = parse_iso_datetime(self.end_time_var.get()) if self.end_time_var.get().strip() else None
+            end_time = self._parse_user_datetime(self.end_time_var.get()) if self.end_time_var.get().strip() else None
         except ValueError as exc:
             messagebox.showerror("Error", f"Invalid end time: {exc}")
             return
@@ -413,6 +504,11 @@ class GPXConverterGUI:
             "Success",
             f"Conversion complete!\nSlopes CSV: {slopes_path}\nPaths CSV: {paths_path}"
         )
+        self.output_dir_var.set(output_dir)
+        if self._config is None:
+            self._config = {}
+        self._config["last_output_dir"] = output_dir
+        self._save_config()
     def run(self) -> None:
         self.root.mainloop()
 def main() -> None:
