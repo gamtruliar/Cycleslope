@@ -154,7 +154,7 @@ def _iter_window_gradients(
         cumulative_elevation.append(cumulative_elevation[-1] + elevation_change)
 
     gradients: List[tuple[float, float]] = []
-    for i in range(1, len(cumulative_distance)):
+    for i in range(safe_window, len(cumulative_distance),safe_window):
         start_idx = max(0, i - safe_window)
         horiz_delta = cumulative_distance[i] - cumulative_distance[start_idx]
         if horiz_delta <= 0:
@@ -162,6 +162,13 @@ def _iter_window_gradients(
         elev_delta = cumulative_elevation[i] - cumulative_elevation[start_idx]
         grade = (elev_delta / horiz_delta) * 100
         gradients.append((grade, horiz_delta))
+    if len(gradients)==0:
+        start_idx = 0
+        horiz_delta = cumulative_distance[-1] - cumulative_distance[start_idx]
+        if horiz_delta >0:
+            elev_delta = cumulative_elevation[-1] - cumulative_elevation[start_idx]
+            grade = (elev_delta / horiz_delta) * 100
+            gradients.append((grade, horiz_delta))
 
     return gradients
 
@@ -231,7 +238,7 @@ def compute_statistics(points: List[TrackPoint], smoothing_points: int = 1, min_
         horizontal_distance_sum += horiz_distance
         total_distance += math.sqrt(horiz_distance ** 2 + elevation_change ** 2)
 
-    window_gradients = _iter_window_gradients(filtered_segments, use_window)
+    window_gradients = _iter_window_gradients(raw_segments, use_window)
     max_grade = 0.0
     for grade, horiz_delta in window_gradients:
         max_grade = max(max_grade, grade)
