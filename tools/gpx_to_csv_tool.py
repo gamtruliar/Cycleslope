@@ -113,21 +113,23 @@ def _smooth_elevations(points: List[TrackPoint], window: int) -> List[TrackPoint
     n = len(points)
     if window is None or window <= 1 or n == 0:
         return [TrackPoint(p.latitude, p.longitude, p.elevation, p.time) for p in points]
+
     window = min(window, n)
-    half = window // 2
+    # Keep the current point centered in the window. For even windows, favor the sample ahead
+    # so a 2-point window uses the current point and the next point, a 3-point window uses one on
+    # either side, etc. This keeps the previewed elevation anchored to the current index instead of
+    # shifting the window to always include the requested number of points.
+    left = window // 2
+    right = window - left - 1
+
     prefix: List[float] = [0.0]
     for pt in points:
         prefix.append(prefix[-1] + pt.elevation)
+
     smoothed: List[TrackPoint] = []
     for i in range(n):
-        start = i - half
-        end = start + window
-        if start < 0:
-            end = min(n, end - start)
-            start = 0
-        if end > n:
-            start = max(0, start - (end - n))
-            end = n
+        start = max(0, i - left)
+        end = min(n, i + right + 1)
         if end <= start:
             start = i
             end = i + 1
