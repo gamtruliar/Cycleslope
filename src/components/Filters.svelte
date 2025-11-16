@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import SuitabilityBadge from './SuitabilityBadge.svelte';
+  import SlopeDetail from './SlopeDetail.svelte';
   import type { SuitabilityLevel } from '../i18n';
   import { t } from '../i18n';
   import {
@@ -30,6 +31,7 @@
 
   const slopesCsvUrl = `${import.meta.env.BASE_URL}data/slopes.csv`;
   const difficultyOrder: SuitabilityLevel[] = ['Friendly', 'Challenging', 'Brutal'];
+  let expandedSlopeId: string | null = null;
 
   onMount(() => {
     loadSlopes().catch((error) => {
@@ -77,6 +79,10 @@
   const handleDistanceMaxInput = (event: Event) => {
     const target = event.currentTarget as HTMLInputElement;
     distanceRange.setMax(target.valueAsNumber);
+  };
+
+  const toggleSlope = (name: string) => {
+    expandedSlopeId = expandedSlopeId === name ? null : name;
   };
 
   const clearSearch = () => {
@@ -258,43 +264,62 @@
       {:else}
         <ul class="slope-list">
           {#each filtered as row}
-            <li class="slope-card">
-              <div class="slope-card__header">
-                <div>
-                  <p class="caption">{$t.slopes.caption}</p>
-                  <h3>{row.name}</h3>
-                  <p class="location">
-                    {row.location} · {$t.slopes.columns.ascent}: {formatElevation(row.totalAscent)}
-                  </p>
-                </div>
-                <SuitabilityBadge level={row.suitability} />
-              </div>
-              <div class="slope-card__metrics">
-                <div class="metric">
-                  <span class="metric__label">{$t.slopes.columns.distance}</span>
-                  <span class="metric__value">{formatDistance(row.distanceKm)}</span>
-                </div>
-                <div class="metric">
-                  <span class="metric__label">{$t.slopes.columns.gradient}</span>
-                  <span class="metric__value">{formatGradient(row.avgGradient)}</span>
-                  <span class="metric__detail">
-                    {$t.slopes.labels.maxGradient.replace('{value}', formatGradient(row.maxGradient))}
-                  </span>
-                </div>
-                <div class="metric">
-                  <span class="metric__label">{$t.slopes.labels.estimatedTime}</span>
-                  <span class="metric__value">{formatDuration(row.metrics.climbTimeSeconds)}</span>
-                </div>
-                <div class="metric">
-                  <span class="metric__label">{$t.slopes.columns.power}</span>
-                  <span class="metric__value">{formatPower(row.metrics.averagePowerWatts)}</span>
-                  <span class="metric__detail">{formatFtpRatio(row.metrics.ftpRatio)}</span>
-                </div>
-              </div>
-              {#if row.burstWarning}
-                <p class="burst">{$t.slopes.burstWarning}</p>
-              {/if}
-            </li>
+            {#if row}
+              {#key row.name}
+                <li class={`slope-card ${expandedSlopeId === row.name ? 'slope-card--open' : ''}`}>
+                  <button
+                    type="button"
+                    class="slope-card__summary"
+                    on:click={() => toggleSlope(row.name)}
+                    aria-expanded={expandedSlopeId === row.name}
+                  >
+                    <div class="slope-card__header">
+                      <div>
+                        <p class="caption">{$t.slopes.caption}</p>
+                        <h3>{row.name}</h3>
+                        <p class="location">
+                          {row.location} · {$t.slopes.columns.ascent}: {formatElevation(row.totalAscent)}
+                        </p>
+                      </div>
+                      <div class="slope-card__header-meta">
+                        <SuitabilityBadge level={row.suitability} />
+                        <span class="slope-card__toggle">
+                          {expandedSlopeId === row.name ? $t.slopes.detail.hide : $t.slopes.detail.show}
+                        </span>
+                      </div>
+                    </div>
+                    <div class="slope-card__metrics">
+                      <div class="metric">
+                        <span class="metric__label">{$t.slopes.columns.distance}</span>
+                        <span class="metric__value">{formatDistance(row.distanceKm)}</span>
+                      </div>
+                      <div class="metric">
+                        <span class="metric__label">{$t.slopes.columns.gradient}</span>
+                        <span class="metric__value">{formatGradient(row.avgGradient)}</span>
+                        <span class="metric__detail">
+                          {$t.slopes.labels.maxGradient.replace('{value}', formatGradient(row.maxGradient))}
+                        </span>
+                      </div>
+                      <div class="metric">
+                        <span class="metric__label">{$t.slopes.labels.estimatedTime}</span>
+                        <span class="metric__value">{formatDuration(row.metrics.climbTimeSeconds)}</span>
+                      </div>
+                      <div class="metric">
+                        <span class="metric__label">{$t.slopes.columns.power}</span>
+                        <span class="metric__value">{formatPower(row.metrics.averagePowerWatts)}</span>
+                        <span class="metric__detail">{formatFtpRatio(row.metrics.ftpRatio)}</span>
+                      </div>
+                    </div>
+                    {#if row.burstWarning}
+                      <p class="burst">{$t.slopes.burstWarning}</p>
+                    {/if}
+                  </button>
+                  {#if expandedSlopeId === row.name}
+                    <SlopeDetail slope={row} />
+                  {/if}
+                </li>
+              {/key}
+            {/if}
           {/each}
         </ul>
       {/if}
@@ -500,11 +525,39 @@
     box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
   }
 
+  .slope-card--open {
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+  }
+
+  .slope-card__summary {
+    display: grid;
+    gap: 1rem;
+    border: none;
+    background: none;
+    padding: 0;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+
   .slope-card__header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     gap: 1rem;
+  }
+
+  .slope-card__header-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+  }
+
+  .slope-card__toggle {
+    font-size: 0.8rem;
+    color: #2563eb;
   }
 
   .slope-card__header h3 {

@@ -3,6 +3,11 @@ import type { SuitabilityLevel } from '../i18n';
 import { difficultyFilter, distanceRange, gradientRange, searchQuery } from './filters';
 import { getTotalSystemMassKg, settings, type UserSettings } from './settings';
 
+export const GRADIENT_THRESHOLDS = [3, 5, 7, 10, 13, 17, 20, 25, 30, 40] as const;
+export type GradientThreshold = (typeof GRADIENT_THRESHOLDS)[number];
+
+export type GradientBreakdown = Record<GradientThreshold, number>;
+
 export interface SlopeRecord {
   name: string;
   location: string;
@@ -10,7 +15,9 @@ export interface SlopeRecord {
   totalAscent: number;
   avgGradient: number;
   maxGradient: number;
-  pathGroupId: string;
+  detailDifficultyScore: number;
+  gradientDistances: GradientBreakdown;
+  pathGroupId: string | null;
 }
 
 export interface SlopeMetrics {
@@ -26,6 +33,7 @@ export interface EnrichedSlope extends SlopeRecord {
   metrics: SlopeMetrics;
   suitability: SuitabilityLevel;
   burstWarning: boolean;
+  difficultyTags: string[];
 }
 
 export type SlopeLoadState = 'idle' | 'loading' | 'ready' | 'error';
@@ -132,6 +140,10 @@ export function formatGradient(gradient: number): string {
   return `${formatNumber(gradient)}%`;
 }
 
+export function formatDifficultyScore(score: number): string {
+  return `${formatNumber(score)} pts`;
+}
+
 export function formatElevation(ascentMeters: number): string {
   return `${formatInteger(ascentMeters)} m`;
 }
@@ -231,7 +243,14 @@ function transformRecord(record: Record<string, string>, lineNumber: number): Sl
   );
   const avgGradient = parseNumberField(record['avg_gradient'] ?? record['avg_gradient_pct'], 'avg_gradient', lineNumber);
   const maxGradient = parseNumberField(record['max_gradient'] ?? record['max_gradient_pct'], 'max_gradient', lineNumber);
-  const pathGroupId = record['path_group_id'] ?? record['group_id'] ?? record['pathgroupid'];
+  const detailDifficultyScore = parseOptionalNumberField(
+    record['detail_difficulty_score'] ?? record['detaildifficulty'],
+    'detail_difficulty_score',
+    lineNumber,
+    NaN,
+  );
+  const gradientDistances = parseGradientDistances(record, lineNumber);
+  const pathGroupId = (record['path_group_id'] ?? record['group_id'] ?? record['pathgroupid'] ?? '').trim();
 
   if (!name) {
     throw new Error(`Row ${lineNumber} is missing a name column.`);
@@ -241,10 +260,6 @@ function transformRecord(record: Record<string, string>, lineNumber: number): Sl
     throw new Error(`Row ${lineNumber} is missing a location column.`);
   }
 
-  if (!pathGroupId) {
-    throw new Error(`Row ${lineNumber} is missing a path_group_id column.`);
-  }
-
   return {
     name,
     location,
@@ -252,7 +267,11 @@ function transformRecord(record: Record<string, string>, lineNumber: number): Sl
     totalAscent,
     avgGradient,
     maxGradient,
-    pathGroupId,
+    detailDifficultyScore: Number.isFinite(detailDifficultyScore)
+      ? detailDifficultyScore
+      : computeDetailDifficulty(gradientDistances),
+    gradientDistances,
+    pathGroupId: pathGroupId || null,
   };
 }
 
@@ -267,6 +286,33 @@ function parseNumberField(value: string | undefined, field: string, lineNumber: 
   }
 
   return parsed;
+}
+
+function parseOptionalNumberField(
+  value: string | undefined,
+  field: string,
+  lineNumber: number,
+  fallback: number,
+): number {
+  if (value === undefined || value === '') {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`Row ${lineNumber} has an invalid number for ${field}: ${value}`);
+  }
+
+  return parsed;
+}
+
+function parseGradientDistances(record: Record<string, string>, lineNumber: number): GradientBreakdown {
+  return GRADIENT_THRESHOLDS.reduce<GradientBreakdown>((acc, threshold) => {
+    const key = `gradient_${threshold}_distance_km`;
+    const value = parseOptionalNumberField(record[key], key, lineNumber, 0);
+    acc[threshold] = Math.max(0, value ?? 0);
+    return acc;
+  }, {} as GradientBreakdown);
 }
 
 const G = 9.80665;
@@ -285,9 +331,12 @@ function enrichSlope(slope: SlopeRecord, rider: UserSettings): EnrichedSlope {
   const climbTimeSeconds = computeClimbTime(slope.distanceKm, minSpeed);
   const suitability = classifyDifficulty(Math.max(ftpRatio, peakFtpRatio));
   const burstWarning = peakFtpRatio > 1.2;
+  const detailDifficultyScore = computeDetailDifficulty(slope.gradientDistances);
+  const difficultyTags = buildDifficultyTags(slope, slope.gradientDistances);
 
   return {
     ...slope,
+    detailDifficultyScore,
     metrics: {
       minSpeedMps: minSpeed,
       averagePowerWatts: averagePower,
@@ -298,6 +347,7 @@ function enrichSlope(slope: SlopeRecord, rider: UserSettings): EnrichedSlope {
     },
     suitability,
     burstWarning,
+    difficultyTags,
   };
 }
 
@@ -341,6 +391,47 @@ function classifyDifficulty(ratio: number): SuitabilityLevel {
   }
 
   return 'Brutal';
+}
+
+function computeDetailDifficulty(gradientDistances: GradientBreakdown): number {
+  return GRADIENT_THRESHOLDS.reduce((score, threshold) => {
+    const distance = gradientDistances[threshold] ?? 0;
+    return score + distance * threshold;
+  }, 0);
+}
+
+function buildDifficultyTags(slope: SlopeRecord, breakdown: GradientBreakdown): string[] {
+  const tags: string[] = [];
+  const sustained13 = (breakdown[13] ?? 0) >= 0.8 || (breakdown[10] ?? 0) >= 1.2;
+  const punchy20 = (breakdown[20] ?? 0) >= 0.2 || (breakdown[25] ?? 0) >= 0.1;
+  const walls30 = (breakdown[30] ?? 0) >= 0.03 || (breakdown[40] ?? 0) > 0;
+  const endurance = slope.distanceKm >= 4 && slope.avgGradient >= 5;
+
+  if (sustained13) {
+    tags.push('sustained13');
+  }
+
+  if (punchy20) {
+    tags.push('punchy20');
+  }
+
+  if (walls30) {
+    tags.push('wall30');
+  }
+
+  if (endurance) {
+    tags.push('endurance');
+  }
+
+  if (!tags.length && slope.avgGradient < 5) {
+    tags.push('rolling');
+  }
+
+  if (!tags.length) {
+    tags.push('balanced');
+  }
+
+  return tags;
 }
 
 export function formatPower(power: number): string {
