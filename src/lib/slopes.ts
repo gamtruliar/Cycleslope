@@ -15,7 +15,6 @@ export interface SlopeRecord {
   totalAscent: number;
   avgGradient: number;
   maxGradient: number;
-  detailDifficultyScore: number;
   gradientDistances: GradientBreakdown;
   pathGroupId: string | null;
 }
@@ -30,6 +29,7 @@ export interface SlopeMetrics {
 }
 
 export interface EnrichedSlope extends SlopeRecord {
+  detailDifficultyScore: number;
   metrics: SlopeMetrics;
   suitability: SuitabilityLevel;
   burstWarning: boolean;
@@ -243,12 +243,6 @@ function transformRecord(record: Record<string, string>, lineNumber: number): Sl
   );
   const avgGradient = parseNumberField(record['avg_gradient'] ?? record['avg_gradient_pct'], 'avg_gradient', lineNumber);
   const maxGradient = parseNumberField(record['max_gradient'] ?? record['max_gradient_pct'], 'max_gradient', lineNumber);
-  const detailDifficultyScore = parseOptionalNumberField(
-    record['detail_difficulty_score'] ?? record['detaildifficulty'],
-    'detail_difficulty_score',
-    lineNumber,
-    NaN,
-  );
   const gradientDistances = parseGradientDistances(record, lineNumber);
   const pathGroupId = (record['path_group_id'] ?? record['group_id'] ?? record['pathgroupid'] ?? '').trim();
 
@@ -267,9 +261,6 @@ function transformRecord(record: Record<string, string>, lineNumber: number): Sl
     totalAscent,
     avgGradient,
     maxGradient,
-    detailDifficultyScore: Number.isFinite(detailDifficultyScore)
-      ? detailDifficultyScore
-      : computeDetailDifficulty(gradientDistances),
     gradientDistances,
     pathGroupId: pathGroupId || null,
   };
@@ -331,7 +322,7 @@ function enrichSlope(slope: SlopeRecord, rider: UserSettings): EnrichedSlope {
   const climbTimeSeconds = computeClimbTime(slope.distanceKm, minSpeed);
   const suitability = classifyDifficulty(Math.max(ftpRatio, peakFtpRatio));
   const burstWarning = peakFtpRatio > 1.2;
-  const detailDifficultyScore = computeDetailDifficulty(slope.gradientDistances);
+  const detailDifficultyScore = computeDetailDifficulty(slope.gradientDistances, rider, minSpeed);
   const difficultyTags = buildDifficultyTags(slope, slope.gradientDistances);
 
   return {
@@ -393,10 +384,24 @@ function classifyDifficulty(ratio: number): SuitabilityLevel {
   return 'Brutal';
 }
 
-function computeDetailDifficulty(gradientDistances: GradientBreakdown): number {
+function computeDetailDifficulty(
+  gradientDistances: GradientBreakdown,
+  rider: UserSettings,
+  providedMinSpeed?: number,
+): number {
+  const minSpeed = Number.isFinite(providedMinSpeed) && providedMinSpeed ? providedMinSpeed : computeMinSpeed(rider);
+  const ftp = Math.max(rider.ftp, 1);
+
   return GRADIENT_THRESHOLDS.reduce((score, threshold) => {
     const distance = gradientDistances[threshold] ?? 0;
-    return score + distance * threshold;
+    if (!distance) {
+      return score;
+    }
+
+    const grade = threshold / 100;
+    const requiredPower = computePowerRequirement(grade, minSpeed, rider);
+    const difficultyFactor = requiredPower / ftp;
+    return score + distance * threshold * difficultyFactor;
   }, 0);
 }
 
