@@ -34,7 +34,7 @@ export interface EnrichedSlope extends SlopeRecord {
   detailDifficultyScore: number;
   metrics: SlopeMetrics;
   suitability: SuitabilityLevel;
-  burstWarning: boolean;
+  burstWarning: number | null;
   difficultyTags: string[];
 }
 
@@ -335,7 +335,7 @@ function enrichSlope(slope: SlopeRecord, rider: UserSettings): EnrichedSlope {
     ftpRatio,
   );
   const suitability = classifyDifficulty(Math.max(ftpRatio, sustainedFtpRatio));
-  const burstWarning = peakFtpRatio > 1.2;
+  const burstWarning = peakFtpRatio > 1.2 ? peakFtpRatio : null;
   const detailDifficultyScore = computeDetailDifficulty(slope.gradientDistances, rider, minSpeed);
   const difficultyTags = buildDifficultyTags(slope, slope.gradientDistances);
 

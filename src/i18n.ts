@@ -126,7 +126,7 @@ const translations = {
       noMatches: '沒有符合「{query}」的爬坡。',
       clearSearch: '清除搜尋',
       placeholder: '載入資料後即可依條件查看爬坡列表。',
-      burstWarning: '個別路段需要超過 FTP 120% 的爆發力。',
+      burstWarning: '個別路段需要超過 {value} 的爆發力。',
       detail: {
         show: '展開詳情',
         hide: '收合詳情',
@@ -330,7 +330,7 @@ const translations = {
       noMatches: 'No climbs matched “{query}”.',
       clearSearch: 'Clear search',
       placeholder: 'Climb rows will appear once the dataset finishes loading.',
-      burstWarning: 'Expect short ramps above 120% FTP.',
+      burstWarning: 'Expect short ramps above {value}.',
       detail: {
         show: 'Show details',
         hide: 'Hide details',
