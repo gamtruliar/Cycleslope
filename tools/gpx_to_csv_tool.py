@@ -178,7 +178,7 @@ def compute_statistics(points: List[TrackPoint], smoothing_points: int = 1, min_
     filtered_segments: List[tuple[float, float]] = []
 
     prev = pts[0]
-    for curr in pts[1:]:
+    for curr in pts[1:-1]:
         horiz_distance = haversine_distance(prev.latitude, prev.longitude, curr.latitude, curr.longitude)
         elevation_change = curr.elevation - prev.elevation
 
@@ -187,8 +187,14 @@ def compute_statistics(points: List[TrackPoint], smoothing_points: int = 1, min_
 
         if horiz_distance >= min_seg_m:
             filtered_segments.append((horiz_distance, elevation_change))
+            prev = curr
+    curr= pts[-1]
+    horiz_distance = haversine_distance(prev.latitude, prev.longitude, curr.latitude, curr.longitude)
+    elevation_change = curr.elevation - prev.elevation
+    if horiz_distance > 0:
+        filtered_segments.append((horiz_distance, elevation_change))
 
-        prev = curr
+
 
     for horiz_distance, elevation_change in filtered_segments:
         grade = (elevation_change / horiz_distance) * 100
