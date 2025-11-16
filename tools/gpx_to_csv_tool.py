@@ -193,6 +193,7 @@ class GPXConverterGUI:
         self.start_offset_var = tk.StringVar(value="Offset: --:--")
         self.end_offset_var = tk.StringVar(value="Offset: --:--")
         self.smoothing_points_var = tk.IntVar(value=20)  # 1 = off
+        self.reverse_points_var = tk.BooleanVar(value=False)
         # Holds GPX points once a file is chosen
         self.points: List[TrackPoint] = []
         # Internal guard to avoid feedback loops when syncing widget values
@@ -247,7 +248,12 @@ class GPXConverterGUI:
         # Smoothing controls
         ttk.Label(main_frame, text="Smoothing window (points)").grid(column=0, row=8, sticky=tk.W)
         tk.Spinbox(main_frame, from_=1, to=201, increment=1, width=8, textvariable=self.smoothing_points_var).grid(column=1, row=8, sticky=tk.W)
-        ttk.Button(main_frame, text="Convert", command=self.convert).grid(column=1, row=9, pady=(20, 0))
+        ttk.Checkbutton(
+            main_frame,
+            text="Reverse track (treat descent as climb)",
+            variable=self.reverse_points_var,
+        ).grid(column=0, row=9, columnspan=2, sticky=tk.W)
+        ttk.Button(main_frame, text="Convert", command=self.convert).grid(column=1, row=10, pady=(20, 0))
         for child in main_frame.winfo_children():
             child.grid_configure(padx=5, pady=5)
         # Two-way sync: update sliders when entries change
@@ -497,6 +503,8 @@ class GPXConverterGUI:
             except Exception:
                 smoothing_points = 1
         smoothing_points = max(1, smoothing_points)
+        if self.reverse_points_var.get():
+            selected_points = list(reversed(selected_points))
         stats = compute_statistics(selected_points, smoothing_points=smoothing_points, min_seg_m=1.0)
         slopes_path = write_slopes_csv(output_dir, stats)
         paths_path = write_paths_csv(output_dir, selected_points)
