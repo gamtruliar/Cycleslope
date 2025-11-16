@@ -62,7 +62,7 @@ export const filteredSlopes = derived(
     const difficultySet = new Set($difficulty);
     const constrainDifficulty = difficultySet.size > 0;
 
-    return $slopes.filter((slope) => {
+    const matches = $slopes.filter((slope) => {
       if (
         normalizedQuery &&
         ![slope.name, slope.location].some((value) => value.toLowerCase().includes(normalizedQuery))
@@ -92,6 +92,8 @@ export const filteredSlopes = derived(
 
       return true;
     });
+
+    return matches.sort((a, b) => b.detailDifficultyScore - a.detailDifficultyScore);
   },
 );
 

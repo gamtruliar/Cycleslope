@@ -110,6 +110,7 @@ const translations = {
         gradient: '平均坡度',
         power: '功率需求',
         suitability: '適合程度',
+        difficultyScore: '難度指標',
       },
       labels: {
         maxGradient: '最大坡度 {value}',
@@ -314,6 +315,7 @@ const translations = {
         gradient: 'Avg. gradient',
         power: 'Power demand',
         suitability: 'Suitability',
+        difficultyScore: 'Difficulty index',
       },
       labels: {
         maxGradient: 'Max gradient {value}',

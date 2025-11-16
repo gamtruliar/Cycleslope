@@ -16,6 +16,7 @@
     formatElevation,
     formatFtpRatio,
     formatGradient,
+    formatDifficultyScore,
     formatPower,
     formatDuration,
     loadSlopes,
@@ -299,6 +300,10 @@
                         <span class="metric__detail">
                           {$t.slopes.labels.maxGradient.replace('{value}', formatGradient(row.maxGradient))}
                         </span>
+                      </div>
+                      <div class="metric">
+                        <span class="metric__label">{$t.slopes.columns.difficultyScore}</span>
+                        <span class="metric__value">{formatDifficultyScore(row.detailDifficultyScore)}</span>
                       </div>
                       <div class="metric">
                         <span class="metric__label">{$t.slopes.labels.estimatedTime}</span>

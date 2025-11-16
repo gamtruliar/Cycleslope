@@ -138,10 +138,12 @@ def _smooth_elevations(points: List[TrackPoint], window: int) -> List[TrackPoint
         ele = total / count if count else points[i].elevation
         smoothed.append(TrackPoint(points[i].latitude, points[i].longitude, ele, points[i].time))
     return smoothed
-def _calculate_max_gradient(filtered_segments: List[tuple[float, float]], window_size: int) -> float:
-    """Return the maximum gradient using a rolling window of segments."""
+def _iter_window_gradients(
+    filtered_segments: List[tuple[float, float]], window_size: int
+) -> List[tuple[float, float]]:
+    """Yield gradient and horizontal distance per rolling window sized by ``window_size``."""
     if not filtered_segments:
-        return 0.0
+        return []
 
     safe_window = max(1, window_size)
     cumulative_distance = [0.0]
@@ -151,7 +153,7 @@ def _calculate_max_gradient(filtered_segments: List[tuple[float, float]], window
         cumulative_distance.append(cumulative_distance[-1] + horiz_distance)
         cumulative_elevation.append(cumulative_elevation[-1] + elevation_change)
 
-    max_grade = 0.0
+    gradients: List[tuple[float, float]] = []
     for i in range(1, len(cumulative_distance)):
         start_idx = max(0, i - safe_window)
         horiz_delta = cumulative_distance[i] - cumulative_distance[start_idx]
@@ -159,9 +161,23 @@ def _calculate_max_gradient(filtered_segments: List[tuple[float, float]], window
             continue
         elev_delta = cumulative_elevation[i] - cumulative_elevation[start_idx]
         grade = (elev_delta / horiz_delta) * 100
-        max_grade = max(max_grade, grade)
+        gradients.append((grade, horiz_delta))
 
-    return max_grade
+    return gradients
+
+
+def _calculate_max_gradient(filtered_segments: List[tuple[float, float]], window_size: int) -> float:
+    """Return the maximum gradient using a rolling window of segments.
+
+    The rolling aggregation keeps the max gradient aligned with the same
+    filtered segments that power the gradient distance buckets while
+    ensuring that larger smoothing windows cannot inflate the result.
+    """
+    window_gradients = _iter_window_gradients(filtered_segments, window_size)
+    if not window_gradients:
+        return 0.0
+
+    return max(grade for grade, _ in window_gradients)
 
 def compute_statistics(points: List[TrackPoint], smoothing_points: int = 1, min_seg_m: float = 1.0) -> SlopeStats:
     """Compute distance, climbing stats, and gradient distribution."""
@@ -205,12 +221,14 @@ def compute_statistics(points: List[TrackPoint], smoothing_points: int = 1, min_
         horizontal_distance_sum += horiz_distance
         total_distance += math.sqrt(horiz_distance ** 2 + elevation_change ** 2)
 
+    window_gradients = _iter_window_gradients(filtered_segments, use_window)
+    max_grade = 0.0
+    for grade, horiz_delta in window_gradients:
+        max_grade = max(max_grade, grade)
         if grade > 0:
             for threshold in GRADIENT_THRESHOLDS:
                 if grade >= threshold:
-                    gradient_distances[threshold] += horiz_distance
-
-    max_grade = _calculate_max_gradient(filtered_segments, use_window)
+                    gradient_distances[threshold] += horiz_delta
 
     horizontal_for_grade = horizontal_distance_sum if horizontal_distance_sum > 0 else total_distance
     avg_grade = (total_climb / horizontal_for_grade * 100) if horizontal_for_grade > 0 else 0.0
