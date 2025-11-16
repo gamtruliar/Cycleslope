@@ -6,7 +6,7 @@ import math
 import os
 import tkinter as tk
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from tkinter import filedialog, messagebox, ttk
 from typing import Dict, Iterable, List, Optional
 from xml.etree import ElementTree as ET
@@ -55,16 +55,29 @@ def parse_gpx(file_path: str) -> List[TrackPoint]:
         namespace = root.tag.split("}")[0].strip("{")
     points: List[TrackPoint] = []
     search_expr = f".//{{{namespace}}}trkpt" if namespace else ".//trkpt"
+    fallback_time = datetime(1970, 1, 1, tzinfo=timezone.utc)
     for point in root.findall(search_expr):
         lat = float(point.attrib["lat"])
         lon = float(point.attrib["lon"])
         ele_elem = point.find(f"{{{namespace}}}ele") if namespace else point.find("ele")
         time_elem = point.find(f"{{{namespace}}}time") if namespace else point.find("time")
-        if ele_elem is None or time_elem is None:
+        if ele_elem is None:
             continue
         elevation = float(ele_elem.text)
-        time = parse_iso_datetime(time_elem.text)
-        points.append(TrackPoint(lat, lon, elevation, time))
+        dt: Optional[datetime] = None
+        if time_elem is not None and time_elem.text:
+            try:
+                dt = parse_iso_datetime(time_elem.text)
+            except ValueError:
+                dt = None
+        if dt is None:
+            # Some GPX files omit timestamps; synthesize sequential times so downstream
+            # filtering and slider logic continue to work.
+            if points:
+                dt = points[-1].time + timedelta(seconds=1)
+            else:
+                dt = fallback_time
+        points.append(TrackPoint(lat, lon, elevation, dt))
     points.sort(key=lambda p: p.time)
     return points
 
