@@ -184,33 +184,43 @@ def compute_statistics(points: List[TrackPoint], smoothing_points: int = 1, min_
     if len(points) < 2:
         return SlopeStats(0.0, 0.0, 0.0, 0.0, {threshold: 0.0 for threshold in GRADIENT_THRESHOLDS})
 
-    use_window = smoothing_points if smoothing_points is not None else 1
-    pts = _smooth_elevations(points, use_window) if use_window and use_window > 1 else points
+    use_window = max(1, smoothing_points if smoothing_points is not None else 1)
+    # Apply elevation smoothing for the aggregated calculations while keeping
+    # the original lat/lng coordinates intact. Using the same ``use_window`` for
+    # both smoothing and the rolling gradient aggregation keeps the smoothing
+    # slider meaningful without allowing larger windows to inflate the maximum
+    # gradient.
+    pts = _smooth_elevations(points, use_window)
+
+    def _build_segments(path_points: List[TrackPoint]) -> List[tuple[float, float]]:
+        segments: List[tuple[float, float]] = []
+        prev_pt = path_points[0]
+        for mid in path_points[1:-1]:
+            horiz_distance = haversine_distance(prev_pt.latitude, prev_pt.longitude, mid.latitude, mid.longitude)
+            elevation_change = mid.elevation - prev_pt.elevation
+
+            if horiz_distance <= 0:
+                continue
+
+            if horiz_distance >= min_seg_m:
+                segments.append((horiz_distance, elevation_change))
+                prev_pt = mid
+
+        last = path_points[-1]
+        horiz_distance = haversine_distance(prev_pt.latitude, prev_pt.longitude, last.latitude, last.longitude)
+        elevation_change = last.elevation - prev_pt.elevation
+        if horiz_distance > 0:
+            segments.append((horiz_distance, elevation_change))
+
+        return segments
+
+    filtered_segments = _build_segments(pts)
+    raw_segments = _build_segments(points)
 
     total_distance = 0.0
     horizontal_distance_sum = 0.0
     total_climb = 0.0
     gradient_distances = {threshold: 0.0 for threshold in GRADIENT_THRESHOLDS}
-    filtered_segments: List[tuple[float, float]] = []
-
-    prev = pts[0]
-    for curr in pts[1:-1]:
-        horiz_distance = haversine_distance(prev.latitude, prev.longitude, curr.latitude, curr.longitude)
-        elevation_change = curr.elevation - prev.elevation
-
-        if horiz_distance <= 0:
-            continue
-
-        if horiz_distance >= min_seg_m:
-            filtered_segments.append((horiz_distance, elevation_change))
-            prev = curr
-    curr= pts[-1]
-    horiz_distance = haversine_distance(prev.latitude, prev.longitude, curr.latitude, curr.longitude)
-    elevation_change = curr.elevation - prev.elevation
-    if horiz_distance > 0:
-        filtered_segments.append((horiz_distance, elevation_change))
-
-
 
     for horiz_distance, elevation_change in filtered_segments:
         grade = (elevation_change / horiz_distance) * 100
@@ -229,6 +239,11 @@ def compute_statistics(points: List[TrackPoint], smoothing_points: int = 1, min_
             for threshold in GRADIENT_THRESHOLDS:
                 if grade >= threshold:
                     gradient_distances[threshold] += horiz_delta
+
+    raw_window_gradients = _iter_window_gradients(raw_segments, use_window)
+    if raw_window_gradients:
+        raw_cap = max(grade for grade, _ in raw_window_gradients)
+        max_grade = min(max_grade, raw_cap)
 
     horizontal_for_grade = horizontal_distance_sum if horizontal_distance_sum > 0 else total_distance
     avg_grade = (total_climb / horizontal_for_grade * 100) if horizontal_for_grade > 0 else 0.0
