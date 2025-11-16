@@ -207,6 +207,8 @@ class GPXConverterGUI:
         self.end_time_var = tk.StringVar()
         self.start_offset_var = tk.StringVar(value="Offset: --:--")
         self.end_offset_var = tk.StringVar(value="Offset: --:--")
+        self.start_preview_var = tk.StringVar(value="Ele: -- m")
+        self.end_preview_var = tk.StringVar(value="Ele: -- m")
         self.smoothing_points_var = tk.IntVar(value=20)  # 1 = off
         self.reverse_points_var = tk.BooleanVar(value=False)
         # Holds GPX points once a file is chosen
@@ -247,6 +249,7 @@ class GPXConverterGUI:
             length=300,
         )
         self.start_scale.grid(column=1, row=6, sticky=(tk.W+tk.E))
+        ttk.Label(main_frame, textvariable=self.start_preview_var).grid(column=2, row=6, sticky=tk.W)
         ttk.Label(main_frame, text="End (slider)").grid(column=0, row=7, sticky=tk.W)
         self.end_index_var = tk.DoubleVar(value=0.0)
         self.end_scale = ttk.Scale(
@@ -260,6 +263,7 @@ class GPXConverterGUI:
             length=300,
         )
         self.end_scale.grid(column=1, row=7, sticky=(tk.W+tk.E))
+        ttk.Label(main_frame, textvariable=self.end_preview_var).grid(column=2, row=7, sticky=tk.W)
         # Smoothing controls
         ttk.Label(main_frame, text="Smoothing window (points)").grid(column=0, row=8, sticky=tk.W)
         tk.Spinbox(main_frame, from_=1, to=201, increment=1, width=8, textvariable=self.smoothing_points_var).grid(column=1, row=8, sticky=tk.W)
@@ -341,6 +345,21 @@ class GPXConverterGUI:
                 end_dt = None
         self.start_offset_var.set(self._format_offset(start_dt))
         self.end_offset_var.set(self._format_offset(end_dt))
+
+    def _format_elevation_preview(self, idx: Optional[int]) -> str:
+        if not self.points or idx is None:
+            return "Ele: -- m"
+        safe_idx = max(0, min(int(idx), len(self.points) - 1))
+        point = self.points[safe_idx]
+        return f"Ele: {point.elevation:.1f} m"
+
+    def _update_preview_labels(self) -> None:
+        if not self.points:
+            self.start_preview_var.set("Ele: -- m")
+            self.end_preview_var.set("Ele: -- m")
+            return
+        self.start_preview_var.set(self._format_elevation_preview(int(round(self.start_index_var.get()))))
+        self.end_preview_var.set(self._format_elevation_preview(int(round(self.end_index_var.get()))))
     def _find_nearest_index(self, dt: datetime) -> int:
         if not self.points:
             return 0
@@ -365,6 +384,7 @@ class GPXConverterGUI:
             self.end_index_var.set(0.0)
             self.start_offset_var.set("Offset: --:--")
             self.end_offset_var.set("Offset: --:--")
+            self._update_preview_labels()
             return
         n = len(self.points)
         self.start_scale.configure(state="normal", from_=0.0, to=float(n - 1))
@@ -379,6 +399,7 @@ class GPXConverterGUI:
         finally:
             self._syncing = False
         self._update_offset_labels()
+        self._update_preview_labels()
     def _on_start_scale_move(self, value: str) -> None:
         if self._syncing or not self.points:
             return
@@ -398,6 +419,7 @@ class GPXConverterGUI:
         finally:
             self._syncing = False
         self._update_offset_labels()
+        self._update_preview_labels()
     def _on_end_scale_move(self, value: str) -> None:
         if self._syncing or not self.points:
             return
@@ -417,6 +439,7 @@ class GPXConverterGUI:
         finally:
             self._syncing = False
         self._update_offset_labels()
+        self._update_preview_labels()
     def _on_start_entry_changed(self, *_: object) -> None:
         if self._syncing or not self.points:
             return
@@ -435,6 +458,7 @@ class GPXConverterGUI:
         finally:
             self._syncing = False
         self._update_offset_labels()
+        self._update_preview_labels()
     def _on_end_entry_changed(self, *_: object) -> None:
         if self._syncing or not self.points:
             return
@@ -453,6 +477,7 @@ class GPXConverterGUI:
         finally:
             self._syncing = False
         self._update_offset_labels()
+        self._update_preview_labels()
     def select_file(self) -> None:
         file_path = filedialog.askopenfilename(
             title="Select GPX file",
