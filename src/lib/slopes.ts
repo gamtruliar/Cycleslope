@@ -93,7 +93,7 @@ export const filteredSlopes = derived(
       return true;
     });
 
-    return matches.sort((a, b) => b.detailDifficultyScore - a.detailDifficultyScore);
+    return matches.sort((a, b) => a.detailDifficultyScore - b.detailDifficultyScore);
   },
 );
 
