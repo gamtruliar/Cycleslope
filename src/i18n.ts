@@ -25,7 +25,6 @@ const translations = {
       highlights: [
         '比較平均與最大坡度並查看功率需求',
         '估算完成時間與 FTP 比率',
-        '匯出 CSV 以便行程規劃',
       ],
     },
     filters: {
