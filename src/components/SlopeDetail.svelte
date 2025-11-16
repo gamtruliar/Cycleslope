@@ -24,9 +24,11 @@
   });
 
   $: gradientEntries = GRADIENT_THRESHOLDS.map((threshold, index) => {
-    const distance = slope.gradientDistances[threshold] ?? 0;
+    var distance = slope.gradientDistances[threshold] ?? 0;
     const nextThreshold = GRADIENT_THRESHOLDS[index + 1];
-
+    if(nextThreshold){
+        distance-=slope.gradientDistances[nextThreshold];
+    }
     return {
       threshold,
       distance,
