@@ -1,6 +1,6 @@
 import { derived, writable, type Readable } from 'svelte/store';
 import type { SuitabilityLevel } from '../i18n';
-import { difficultyFilter, distanceRange, gradientRange, searchQuery } from './filters';
+import { difficultyFilter, gradientRange, searchQuery } from './filters';
 import { getTotalSystemMassKg, settings, type UserSettings } from './settings';
 
 export const GRADIENT_THRESHOLDS = [3, 5, 7, 10, 13, 17, 20, 25, 30, 40] as const;
@@ -56,8 +56,8 @@ export const computedSlopes = derived([slopesStore, settings], ([$slopes, $setti
 });
 
 export const filteredSlopes = derived(
-  [computedSlopes, searchQuery, difficultyFilter, gradientRange, distanceRange],
-  ([$slopes, $query, $difficulty, $gradient, $distance]) => {
+  [computedSlopes, searchQuery, difficultyFilter, gradientRange],
+  ([$slopes, $query, $difficulty, $gradient]) => {
     const normalizedQuery = $query.trim().toLowerCase();
     const difficultySet = new Set($difficulty);
     const constrainDifficulty = difficultySet.size > 0;
@@ -79,14 +79,6 @@ export const filteredSlopes = derived(
       }
 
       if (Number.isFinite($gradient.max) && slope.avgGradient > $gradient.max) {
-        return false;
-      }
-
-      if (Number.isFinite($distance.min) && slope.distanceKm < $distance.min) {
-        return false;
-      }
-
-      if (Number.isFinite($distance.max) && slope.distanceKm > $distance.max) {
         return false;
       }
 

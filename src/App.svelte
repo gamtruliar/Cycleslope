@@ -22,9 +22,9 @@
 <PrivacyModal open={showPrivacy} on:close={closePrivacy} />
 <main class="container">
   <HeroSection />
+  <MapView />
   <UserProfile />
   <Filters />
-  <MapView />
 </main>
 <footer>
   <div class="container footer__content">
