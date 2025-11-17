@@ -5,7 +5,6 @@
   import type { SuitabilityLevel } from '../i18n';
   import { t } from '../i18n';
   import {
-    distanceRange,
     difficultyFilter,
     gradientRange,
     searchQuery,
@@ -72,16 +71,6 @@
     gradientRange.setMax(target.valueAsNumber);
   };
 
-  const handleDistanceMinInput = (event: Event) => {
-    const target = event.currentTarget as HTMLInputElement;
-    distanceRange.setMin(target.valueAsNumber);
-  };
-
-  const handleDistanceMaxInput = (event: Event) => {
-    const target = event.currentTarget as HTMLInputElement;
-    distanceRange.setMax(target.valueAsNumber);
-  };
-
   const toggleSlope = (name: string) => {
     expandedSlopeId = expandedSlopeId === name ? null : name;
   };
@@ -94,7 +83,6 @@
     searchQuery.reset();
     difficultyFilter.clear();
     gradientRange.reset();
-    distanceRange.reset();
   };
 
   const handleRetry = () => {
@@ -175,35 +163,6 @@
               on:input={handleGradientMaxInput}
             />
             <span class="value">{formatGradient($gradientRange.max)}</span>
-          </label>
-        </div>
-      </div>
-      <div class="filter-group">
-        <p class="field-label">{$t.filters.distanceLabel}</p>
-        <div class="range-inputs">
-          <label>
-            <span>{$t.filters.distanceRange.min}</span>
-            <input
-              type="range"
-              min="0"
-              max="20"
-              step="0.5"
-              value={$distanceRange.min}
-              on:input={handleDistanceMinInput}
-            />
-            <span class="value">{formatDistance($distanceRange.min)}</span>
-          </label>
-          <label>
-            <span>{$t.filters.distanceRange.max}</span>
-            <input
-              type="range"
-              min="0"
-              max="20"
-              step="0.5"
-              value={$distanceRange.max}
-              on:input={handleDistanceMaxInput}
-            />
-            <span class="value">{formatDistance($distanceRange.max)}</span>
           </label>
         </div>
       </div>
@@ -656,6 +615,10 @@
 
     .filters__actions {
       justify-content: flex-start;
+    }
+
+    .slope-card__metrics {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 </style>

@@ -44,11 +44,6 @@ const translations = {
         min: '最低坡度',
         max: '最高坡度',
       },
-      distanceLabel: '距離 (公里)',
-      distanceRange: {
-        min: '最短距離',
-        max: '最長距離',
-      },
       reset: '重設篩選',
       note: '調整條件會即時更新右方的爬坡清單。',
     },
@@ -248,11 +243,6 @@ const translations = {
       gradientRange: {
         min: 'Minimum gradient',
         max: 'Maximum gradient',
-      },
-      distanceLabel: 'Distance (km)',
-      distanceRange: {
-        min: 'Minimum distance',
-        max: 'Maximum distance',
       },
       reset: 'Reset filters',
       note: 'Adjust the inputs to update the climb list instantly.',

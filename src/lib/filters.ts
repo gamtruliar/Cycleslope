@@ -101,7 +101,5 @@ export const difficultyFilter: Readable<SuitabilityLevel[]> & {
 };
 
 const DEFAULT_GRADIENT_LIMITS: Range = { min: 0, max: 25 };
-const DEFAULT_DISTANCE_LIMITS: Range = { min: 0, max: 25 };
 
 export const gradientRange = createRangeStore({ min: 0, max: 20 }, DEFAULT_GRADIENT_LIMITS);
-export const distanceRange = createRangeStore({ min: 0, max: 12 }, DEFAULT_DISTANCE_LIMITS);
