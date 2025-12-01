@@ -14,7 +14,6 @@ const translations = {
         slopes: '爬坡列表',
         map: '地圖',
       },
-      cta: '在 GitHub 參與',
       languageSwitcherLabel: '介面語言',
     },
     hero: {
@@ -213,7 +212,6 @@ const translations = {
         slopes: 'Climbs',
         map: 'Map',
       },
-      cta: 'View on GitHub',
       languageSwitcherLabel: 'Interface language',
     },
     hero: {

@@ -20,14 +20,6 @@
     </nav>
     <div class="topbar__actions">
       <LanguageSwitcher />
-      <a
-        class="cta"
-        href="https://github.com/gamtruliar/Cycleslope"
-        target="_blank"
-        rel="noreferrer"
-      >
-        {$t.topBar.cta}
-      </a>
     </div>
   </div>
 </header>
@@ -88,21 +80,6 @@
     gap: 0.75rem;
   }
 
-  .cta {
-    border: none;
-    background: linear-gradient(135deg, #2563eb, #0ea5e9);
-    color: white;
-    padding: 0.55rem 1.3rem;
-    border-radius: 999px;
-    font-weight: 600;
-    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.25);
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-
   @media (max-width: 768px) {
     .topbar__content {
       flex-wrap: wrap;
@@ -125,12 +102,6 @@
 
     .topbar__actions > :global(.language-switcher) {
       flex: 1;
-    }
-
-    .topbar__actions .cta {
-      flex: 1;
-      justify-content: center;
-      display: inline-flex;
     }
   }
 
